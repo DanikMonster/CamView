@@ -1,194 +1,199 @@
-# 📹 CamView — Мультикамерное наблюдение, запись видео и удалённый доступ
+# 📹 CamView — Multi-Camera Surveillance, Video Recording & Remote Access
 
 <p align="center">
   <img src="icon.png" width="128" height="128" alt="CamView Logo" />
 </p>
 
 <p align="center">
-  <b>Современное приложение для ПК (Electron) для мультикамерного наблюдения, локальной записи видео (MP4/WebM), наложения штампа времени и защищённого удалённого доступа со смартфонов через локальную сеть или глобальный интернет (Cloudflare, LocalTunnel, Pinggy) по QR-коду.</b>
+  <b>A modern PC desktop application (Electron) for multi-camera video surveillance, local recording (MP4/WebM), on-screen date/time timestamping, and secure remote streaming to smartphones over local network or the global Internet (Cloudflare, LocalTunnel, Pinggy) via QR code.</b>
 </p>
 
 <p align="center">
   <a href="https://github.com/DanikMonster/CamView/releases/latest">
-    <img src="https://img.shields.io/github/v/release/DanikMonster/CamView?style=flat-square&color=blue&label=Версия" alt="Latest Release" />
+    <img src="https://img.shields.io/github/v/release/DanikMonster/CamView?style=flat-square&color=blue&label=Release" alt="Latest Release" />
   </a>
-  <img src="https://img.shields.io/badge/Платформа-Windows%2010%20%2F%2011-0078D6?style=flat-square&logo=windows" alt="Platform" />
+  <img src="https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011-0078D6?style=flat-square&logo=windows" alt="Platform" />
   <img src="https://img.shields.io/badge/Electron-31.7.7-47848F?style=flat-square&logo=electron" alt="Electron" />
   <img src="https://img.shields.io/badge/Node.js-%3E%3D20-339933?style=flat-square&logo=node.js" alt="Node.js" />
   <a href="LICENSE">
-    <img src="https://img.shields.io/badge/Лицензия-MIT-green.svg?style=flat-square" alt="License" />
+    <img src="https://img.shields.io/badge/License-MIT-green.svg?style=flat-square" alt="License" />
   </a>
 </p>
 
 <p align="center">
-  <a href="#-быстрый-старт-для-пользователей"><b>Скачать</b></a> •
-  <a href="#-основные-возможности"><b>Возможности</b></a> •
-  <a href="#-инструкция-по-использованию"><b>Инструкция</b></a> •
-  <a href="#-разработка-и-сборка"><b>Сборка из исходников</b></a> •
-  <a href="#-структура-проекта"><b>Файлы проекта</b></a>
+  🌐 <b>Language / Язык:</b> <b>English</b> • <a href="README_ru.md">Русский</a>
+</p>
+
+<p align="center">
+  <a href="#-quick-start-for-users"><b>Download</b></a> •
+  <a href="#-key-features"><b>Features</b></a> •
+  <a href="#-user-guide"><b>User Guide</b></a> •
+  <a href="#-development--build"><b>Build from Source</b></a> •
+  <a href="#-project-structure"><b>Project Files</b></a>
 </p>
 
 ---
 
-## 📥 Быстрый старт для пользователей
+## 📥 Quick Start for Users
 
-Вам не нужно устанавливать Node.js или компилировать код, чтобы пользоваться CamView:
+You don't need to install Node.js or compile any code to use CamView:
 
-1. Перейдите на страницу **[Релизов CamView (Releases)](https://github.com/DanikMonster/CamView/releases/latest)**.
-2. Скачайте подходящий файл:
-   - 📦 **`CamView Setup 1.0.0.exe`** — полноценный установщик (создает ярлыки, автоматически обновляет программу без сброса настроек).
-   - 🚀 **`CamView 1.0.0.exe`** — портативная версия (работает без установки, можно запускать с флешки).
-3. Запустите программу и разрешите доступ к веб-камерам.
-
----
-
-## ✨ Основные возможности
-
-### 🎥 Мультикамерная сетка
-- Одновременный вывод любого количества подключённых камер (встроенные веб-камеры ноутбуков, внешние USB-камеры, карты захвата).
-- Готовые пресеты сетки: **Автосетка**, **1 камера**, **2 камеры**, **3 камеры**, **4 камеры**.
-- Индивидуальные настройки для каждой камеры: зеркальное отображение (Flip), полноэкранный режим, снимок кадра, управление записью.
-
-### ⏱️ Впечатанный штамп времени (OSD)
-- На каждый кадр в реальном времени накладываются:
-  - **Дата и время** с точностью до секунд.
-  - **Название камеры** (например, «Веб-камера Logitech HD»).
-- Титры рисуются аппаратно на холсте и сохраняются в итоговые видеозаписи и скриншоты.
-
-### ⏺️ Запись видео
-- Запись видеопотока с любой активной камеры в один клик.
-- Поддержка форматов **MP4** и **WebM**.
-- Возможность выбора произвольной папки на диске для автоматического сохранения видеоархива.
-- Кнопка быстрого открытия папки с записями в Проводнике Windows прямо из приложения.
-
-### 🌐 Доступ из глобального интернета (Туннели) и локальная сеть
-- **Cloudflare Tunnel (`trycloudflare.com`)**: бесплатный глобальный доступ из любой точки мира через защищённую сеть Cloudflare без белого IP и без проброса портов (с поддержкой загрузки `cloudflared` в 1 клик).
-- **LocalTunnel (`loca.lt`)**: встроенный глобальный HTTPS-доступ без необходимости скачивать какие-либо сторонние утилиты.
-- **Pinggy (*.pinggy.link)**: прямой удобный ввод поддомена 4-го уровня (`[поддомен]` + селектор `.a.free.pinggy.link` / `.a.pinggy.link` / `.free.pinggy.online`) с умным авто-распознаванием при вставке полного URL.
-- **Свой URL / Custom URL**: возможность указать произвольный публичный домен или внешний туннель.
-- **Локальная сеть (LAN/Wi-Fi)**: прямое подключение внутри домашней/офисной сети с бессрочным 10-летним SSL-сертификатом для всех сетевых интерфейсов.
-
-### 🌐 Двуязычный интерфейс (RU / EN)
-- Мгновенное переключение языка приложения в шапке (RU / EN) в один клик без перезагрузки.
-- Полная локализация как настольного приложения (`index.html`), так и мобильного веб-клиента (`remote.html`).
-- Автоматическое сохранение выбранного языка в конфигурации и `localStorage`.
-
-### 🔐 16-значный криптографический пароль и вход по QR
-- Надежный 16-значный пароль доступа с генерацией в один клик.
-- **Генерация QR на ПК**: сервер формирует QR-код с прямой ссылкой и паролем.
-- **Автовход со смартфона**: при наведении стандартной камеры телефона на QR-код мобильный браузер сразу открывает трансляцию и авторизуется без ручного ввода.
-- **Встроенный автономный сканер**: веб-клиент снабжен встроенным сканером на базе оффлайн-библиотеки `jsQR` (не требует подключения к интернету).
-
-### 🔔 Фоновая работа в системном трее (System Tray)
-- При нажатии на крестик окно сворачивается в системный трей возле часов Windows.
-- Приложение продолжает вести запись и транслировать видео без троттлинга (`backgroundThrottling: false`).
-- Удобное контекстное меню в трее для быстрого открытия или выхода.
-
-### 🎨 Современный интерфейс и аккуратный дизайн
-- Четкие векторные SVG-иконки без размытия и эмодзи.
-- Тонкие темные скроллбары, гармонично вписанные в ночную тему интерфейса.
-- Иконка приложения со скруглёнными углами (форма squircle) и прозрачным фоном.
-- Полная адаптивность веб-интерфейса под экраны смартфонов с экономией трафика.
+1. Navigate to the **[CamView Releases](https://github.com/DanikMonster/CamView/releases/latest)** page.
+2. Download the preferred package:
+   - 📦 **`CamView Setup 1.0.0.exe`** — Full installer (creates shortcuts, updates seamlessly while preserving settings).
+   - 🚀 **`CamView 1.0.0.exe`** — Standalone portable executable (runs without installation, flash drive ready).
+3. Launch the application and grant access to your webcams.
 
 ---
 
-## 📖 Инструкция по использованию
+## ✨ Key Features
 
-### 1. Добавление и настройка камер
-1. Нажмите кнопку **«+ Добавить камеру»** на верхней панели.
-2. В выпадающем списке на плитке выберите нужное устройство.
-3. Доступные быстрые действия:
-   - 🔄 **Зеркало** — горизонтальный разворот видео (удобно для фронтальных камер).
-   - 📸 **Снимок** — сохранение фото в нижнюю галерею снимков.
-   - ⏺️ **Запись** — старт/остановка видеозаписи.
-   - ⛶ **Полный экран** — разворот видео на весь экран (выход по клавише `Esc`).
+### 🎥 Multi-Camera Grid
+- View any number of connected cameras simultaneously (laptop webcams, external USB webcams, HDMI capture cards).
+- Instant layout presets: **Auto-grid**, **1 Camera**, **2 Cameras**, **3 Cameras**, **4 Cameras**.
+- Individual camera controls: Horizontal flip (mirror), fullscreen preview, photo snapshot, recording toggle.
 
-### 2. Включение удаленного просмотра (в локальной сети или через интернет)
-1. Нажмите на верхней панели кнопку **«Сеть / Удаленный доступ»**.
-2. В поле **«Режим доступа»** выберите подходящий вариант:
+### ⏱️ Burned-In Timestamp & Label (OSD)
+- Hardware-rendered overlay burned directly into every video frame:
+  - **Live date and time** with second accuracy.
+  - **Camera device name** (e.g., "Logitech HD Pro Webcam").
+- Burned directly onto the canvas stream and saved into all exported video recordings and photo snapshots.
 
-| Режим | Зона действия | Требования | Формат адреса | SSL / Защита |
+### ⏺️ Video Recording
+- One-click video stream recording from any active camera.
+- Supports **MP4** and **WebM** formats.
+- Customizable storage directory for automatic video archiving.
+- Quick shortcut button to open the recordings folder directly in Windows File Explorer.
+
+### 🌐 Global Internet Access (Tunnels) & Local Network
+- **Cloudflare Tunnel (`trycloudflare.com`)**: Free global access from anywhere in the world over Cloudflare's secure edge network without public IP or port forwarding (includes 1-click automatic `cloudflared` binary download).
+- **LocalTunnel (`loca.lt`)**: Built-in global HTTPS tunnel with zero third-party tools required.
+- **Pinggy (*.pinggy.link)**: Direct 4th-level subdomain input (`[subdomain]` + suffix dropdown `.a.free.pinggy.link` / `.a.pinggy.link` / `.free.pinggy.online`) with smart automatic parsing when pasting full URLs.
+- **Custom URL**: Direct input for your own custom domain name, reverse proxy, or external tunnel.
+- **Local Network (LAN / Wi-Fi)**: Direct LAN connection with an included 10-year self-signed SSL certificate for all network interfaces.
+
+### 🌐 Bilingual Interface (RU / EN)
+- Instant one-click language switcher in the header (**RU / EN**) without reloading.
+- Full localization across both the desktop application (`index.html`) and the mobile web client (`remote.html`).
+- Automatic persistence of language preferences in `config.json` and browser `localStorage`.
+
+### 🔐 16-Character Cryptographic Password & QR Sign-In
+- Strong 16-character access token with instant 1-click regeneration.
+- **Desktop QR Generator**: The host generates an instant QR code with an embedded access URL and token.
+- **Instant Phone Login**: Scan the QR code with your phone's native camera to open the stream and authorize automatically without manual typing.
+- **Offline In-App Scanner**: Mobile web client includes a built-in offline QR scanner powered by `jsQR` (requires no internet connection).
+
+### 🔔 Background System Tray Operation
+- Minimizes directly to the Windows System Tray next to the clock when closing or minimizing the window.
+- Continuous background recording and streaming without throttling (`backgroundThrottling: false`).
+- Clean tray context menu for quick window restore or exit.
+
+### 🎨 Clean Modern UI
+- Sharp vector SVG iconography without blurry emojis.
+- Sleek dark scrollbars tailored to the dark theme.
+- Modern squircle application icon with transparent alpha background.
+- Fully responsive mobile web client optimized for low bandwidth and mobile screens.
+
+---
+
+## 📖 User Guide
+
+### 1. Adding and Configuring Cameras
+1. Click **"+ Add Camera"** on the top toolbar.
+2. Select your device from the dropdown menu on the camera tile.
+3. Quick actions:
+   - 🔄 **Mirror** — Horizontal flip (ideal for front-facing webcams).
+   - 📸 **Snapshot** — Capture photo to the snapshot gallery.
+   - ⏺️ **Record** — Start / Stop video recording.
+   - ⛶ **Fullscreen** — Expand camera feed to full display (press `Esc` to exit).
+
+### 2. Enabling Remote Surveillance (LAN or Internet)
+1. Click **"Network / Remote Access"** on the top toolbar.
+2. Choose your preferred **Access Mode**:
+
+| Mode | Coverage | Requirements | URL Structure | SSL / Security |
 | :--- | :--- | :--- | :--- | :--- |
-| **🌐 Локальная сеть (LAN)** | Дом / Офис (Wi-Fi) | Без интернета | `https://192.168.x.x:8765` | Встроенный 10-летний сертификат |
-| **☁️ Cloudflare Tunnel** | Весь мир (Интернет) | Загрузка `cloudflared` в 1 клик | `https://*.trycloudflare.com` | Доверенный глобальный HTTPS |
-| **🚇 LocalTunnel** | Весь мир (Интернет) | Без установки (уже встроено) | `https://*.loca.lt` | Публичный HTTPS |
-| **⚡ Pinggy Tunnel** | Весь мир (Интернет) | Ввод 4-го поддомена Pinggy | `https://*.a.free.pinggy.link` | HTTPS провайдера |
-| **🔗 Свой URL / Custom** | Весь мир (Интернет) | Любой произвольный домен | `https://your-domain.xyz` | По протоколу домена |
+| **🌐 Local Network (LAN)** | Home / Office (Wi-Fi) | No internet required | `https://192.168.x.x:8765` | Built-in 10-year certificate |
+| **☁️ Cloudflare Tunnel** | Worldwide (Internet) | 1-click `cloudflared` download | `https://*.trycloudflare.com` | Trusted global HTTPS |
+| **🚇 LocalTunnel** | Worldwide (Internet) | Zero setup (built-in) | `https://*.loca.lt` | Public HTTPS |
+| **⚡ Pinggy Tunnel** | Worldwide (Internet) | Enter 4th-level subdomain | `https://*.a.free.pinggy.link` | Provider HTTPS |
+| **🔗 Custom URL** | Worldwide (Internet) | Any custom domain / proxy | `https://your-domain.xyz` | Per custom domain |
 
-3. Нажмите **«Запустить»**.
-4. Нажмите **«QR-код для входа»**:
-   - Наведите камеру смартфона на экран ПК или отсканируйте код встроенным сканером в веб-интерфейсе.
-   - Смартфон мгновенно откроет страницу с предзаполненным 16-значным токеном и сразу начнёт приём видеопотока без ввода логинов и паролей!
+3. Click **"Start Server"**.
+4. Click **"QR Code Login"**:
+   - Point your smartphone's camera at the PC screen or scan the QR code via the mobile web client.
+   - Your phone immediately opens the dashboard with the 16-character token pre-filled and starts streaming!
 
 ---
 
-## 🛠️ Разработка и сборка
+## 🛠️ Development & Build
 
-### Системные требования
-- **ОС**: Windows 10 или 11 (64-bit)
-- **Node.js**: версии 20.x или выше ([nodejs.org](https://nodejs.org/))
+### Prerequisites
+- **OS**: Windows 10 or 11 (64-bit)
+- **Node.js**: version 20.x or higher ([nodejs.org](https://nodejs.org/))
 - **Git** ([git-scm.com](https://git-scm.com/))
 
-### 1. Клонирование репозитория
+### 1. Clone the Repository
 ```bash
 git clone https://github.com/DanikMonster/CamView.git
 cd CamView
 ```
 
-### 2. Установка зависимостей
+### 2. Install Dependencies
 ```bash
 npm install
 ```
 
-### 3. Запуск приложения в режиме разработки
+### 3. Run in Development Mode
 ```bash
 npm start
 ```
 
-### 4. Сборка дистрибутивов (Installer и Portable)
+### 4. Build Distribution Packages (Installer & Portable)
 ```bash
 npm run build
 ```
 
-Готовые бинарные файлы появятся в каталоге `dist/`:
-- `CamView Setup 1.0.0.exe` — установщик NSIS.
-- `CamView 1.0.0.exe` — портативная версия.
+The compiled binaries will be output to the `dist/` folder:
+- `CamView Setup 1.0.0.exe` — Full NSIS installer.
+- `CamView 1.0.0.exe` — Standalone portable version.
 
 ---
 
-## 📁 Структура репозитория
+## 📁 Project Structure
 
 ```text
 CamView/
 ├── .github/
 │   └── workflows/
-│       └── build.yml        # CI/CD: автосборка Windows EXE в GitHub Actions
+│       └── build.yml        # CI/CD: Automated Windows builds via GitHub Actions
 ├── scripts/
-│   └── make_icon.ps1        # Скрипт нарезки multi-resolution icon.ico из PNG
-├── .gitignore               # Исключения Git (node_modules, dist, ключи, конфиги)
-├── LICENSE                  # Лицензия MIT
-├── README.md                # Документация проекта
-├── package.json             # Зависимости и конфигурация electron-builder
-├── package-lock.json        # Лок-файл версий пакетов npm
-├── main.js                  # Главный процесс Electron (сервер, трей, IPC, SSL, QR)
-├── preload.js               # Безопасный мост contextBridge между Electron и UI
-├── index.html               # Главный интерфейс приложения для ПК
-├── remote.html              # Мобильный веб-интерфейс для удалённого просмотра
-├── jsqr.js                  # Автономная оффлайн-библиотека сканера QR-кодов
-├── icon.ico                 # Мульти-разрешение иконки Windows (256..16 px)
-└── icon.png                 # PNG-логотип и фавикон веб-интерфейса
+│   └── make_icon.ps1        # Script generating multi-resolution icon.ico from PNG
+├── .gitignore               # Git ignore rules (node_modules, dist, certs, config)
+├── LICENSE                  # MIT License
+├── README.md                # English documentation
+├── README_ru.md             # Russian documentation (Русскоязычная документация)
+├── package.json             # App metadata, scripts & electron-builder configuration
+├── package-lock.json        # NPM dependency lockfile
+├── main.js                  # Electron main process (HTTPS, WS, IPC, tray, QR, tunnels)
+├── preload.js               # Secure contextBridge IPC bridge
+├── index.html               # Desktop Electron UI application
+├── remote.html              # Mobile-optimized client for remote monitoring
+├── jsqr.js                  # Standalone offline QR code scanner library
+├── icon.ico                 # Multi-resolution Windows app icon (256..16 px)
+└── icon.png                 # App logo & web favicon
 ```
 
 ---
 
-## ⚖️ Политика конфиденциальности и правовая информация
+## ⚖️ Privacy Policy & Legal Notice
 
-- Приложение создано для персонального использования (присмотр за домашними животными, мониторинг дома или рабочего места).
-- Видеопоток передается **напрямую (P2P / Local LAN)** в зашифрованном виде между компьютером и подключенным устройством. Сторонние облачные хранилища или сервера разработчиков не используются.
-- Пользователь обязуется соблюдать законодательство о защите частной жизни: негласное видеонаблюдение без согласия людей запрещено.
+- This software is intended for personal surveillance and monitoring (e.g., pet monitoring, home security, workstation checks).
+- Video streams are transmitted **directly (peer-to-peer / local network)** in encrypted form between the host computer and the connected viewer. No third-party servers or developer storage are involved.
+- Users are responsible for complying with applicable privacy and surveillance laws: non-consensual surveillance is strictly prohibited.
 
 ---
 
-## 📄 Лицензия
+## 📄 License
 
-Проект распространяется под свободной лицензией [MIT](LICENSE).
+This project is licensed under the [MIT License](LICENSE).
