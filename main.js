@@ -451,18 +451,21 @@ async function startTunnel(type, options = {}) {
     });
   }
 
-  if (type === 'custom') {
+  if (type === 'custom' || type === 'pinggy') {
     let customUrl = (options.customUrl || '').trim();
     if (customUrl) {
       if (!/^https?:\/\//i.test(customUrl)) {
+        if (options.pinggySuffix && !customUrl.includes('.')) {
+          customUrl = customUrl + options.pinggySuffix;
+        }
         customUrl = 'https://' + customUrl;
       }
       customUrl = customUrl.replace(/\/+$/, '');
-      activeTunnelType = 'custom';
+      activeTunnelType = type;
       activeTunnelUrl = customUrl;
-      return { ok: true, url: customUrl, type: 'custom' };
+      return { ok: true, url: customUrl, type };
     } else {
-      return { ok: false, error: 'Введите URL для пользовательского туннеля' };
+      return { ok: false, error: 'Введите поддомен или URL для туннеля' };
     }
   }
 
@@ -592,6 +595,11 @@ ipcMain.handle('srv-get-config', () => {
     password: cfg.password || null,
     useHttps: cfg.useHttps !== undefined ? cfg.useHttps : false,
     ipAddress: cfg.ipAddress || null,
+    accessMode: cfg.accessMode || 'lan',
+    pinggySubdomain: cfg.pinggySubdomain || '',
+    pinggySuffix: cfg.pinggySuffix || '.a.free.pinggy.link',
+    customTunnelUrl: cfg.customTunnelUrl || '',
+    language: cfg.language || 'ru'
   };
 });
 

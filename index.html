@@ -302,6 +302,12 @@
     @keyframes tout{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(20px)}}
     .toast.bye{animation:tout .25s ease forwards;}
 
+    /* Language switcher */
+    .lang-switch{display:flex;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:2px;gap:2px;}
+    .lang-btn{background:none;border:none;color:var(--t3);font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;cursor:pointer;transition:all .15s;font-family:inherit;}
+    .lang-btn:hover{color:var(--text);}
+    .lang-btn.active{background:var(--p);color:#fff;box-shadow:0 1px 4px var(--pg);}
+
     #snap-canvas{display:none;}
     #frame-canvas{display:none;}
   </style>
@@ -311,19 +317,23 @@
 <header>
   <div class="logo"><div class="logo-box"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div>CamView</div>
   <div class="hgap"></div>
-  <div class="pill"><div class="dot" id="status-dot"></div><span id="status-txt">Нет подключения</span></div>
+  <div class="lang-switch">
+    <button class="lang-btn active" id="lang-btn-ru" onclick="setLanguage('ru')">RU</button>
+    <button class="lang-btn" id="lang-btn-en" onclick="setLanguage('en')">EN</button>
+  </div>
+  <div class="pill"><div class="dot" id="status-dot"></div><span id="status-txt" data-i18n="status_disconnected">Нет подключения</span></div>
 </header>
 
 <!-- Welcome screen -->
 <div id="perm-screen">
   <div class="hero-icon"><svg class="svg-ic svg-ic-xl" viewBox="0 0 24 24"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg></div>
-  <h1 class="hero-title">Мультикамерный просмотр</h1>
-  <p class="hero-sub">Смотрите сразу с нескольких камер. Удалённый просмотр по локальной сети.</p>
-  <button class="btn btn-primary" onclick="initApp()"><svg class="svg-ic" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg> Запустить</button>
-  <p style="font-size:11px;color:var(--t3);margin-top:8px;">Браузер запросит разрешение на использование камер</p>
+  <h1 class="hero-title" data-i18n="welcome_title">Мультикамерный просмотр</h1>
+  <p class="hero-sub" data-i18n="welcome_sub">Смотрите сразу с нескольких камер. Удалённый просмотр по локальной сети и через интернет.</p>
+  <button class="btn btn-primary" onclick="initApp()"><svg class="svg-ic" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg> <span data-i18n="welcome_start">Запустить</span></button>
+  <p style="font-size:11px;color:var(--t3);margin-top:8px;" data-i18n="welcome_perm_hint">Браузер запросит разрешение на использование камер</p>
   <p style="font-size:11px;color:var(--t3);margin-top:16px;">
-    Нажимая «Запустить», вы принимаете 
-    <span style="color:var(--p2);cursor:pointer;text-decoration:underline;" onclick="showPrivacyModal()">Политику конфиденциальности и использования</span>
+    <span data-i18n="welcome_privacy_hint">Нажимая «Запустить», вы принимаете</span> 
+    <span style="color:var(--p2);cursor:pointer;text-decoration:underline;" onclick="showPrivacyModal()" data-i18n="welcome_privacy_link">Политику конфиденциальности и использования</span>
   </p>
 </div>
 
@@ -331,23 +341,23 @@
 <div id="app-screen">
 
   <div class="toolbar">
-    <span class="tlbl">Раскладка:</span>
+    <span class="tlbl" data-i18n="tb_layout">Раскладка:</span>
     <div class="lbtns">
-      <div class="lbtn active" id="lb-la" title="Авто"     onclick="setLayout('la')"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
-      <div class="lbtn"        id="lb-l1" title="1 камера"  onclick="setLayout('l1')"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></svg></div>
-      <div class="lbtn"        id="lb-l2" title="2 камеры"  onclick="setLayout('l2')"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="18" rx="1"/><rect x="13" y="3" width="8" height="18" rx="1"/></svg></div>
-      <div class="lbtn"        id="lb-l3" title="3 камеры"  onclick="setLayout('l3')"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="9.5" y="3" width="5" height="18" rx="1"/><rect x="16" y="3" width="5" height="18" rx="1"/></svg></div>
-      <div class="lbtn"        id="lb-l4" title="4 камеры"  onclick="setLayout('l4')"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg></div>
+      <div class="lbtn active" id="lb-la" title="Авто" data-i18n-title="lb_la" onclick="setLayout('la')"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
+      <div class="lbtn"        id="lb-l1" title="1 камера" data-i18n-title="lb_l1" onclick="setLayout('l1')"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></svg></div>
+      <div class="lbtn"        id="lb-l2" title="2 камеры" data-i18n-title="lb_l2" onclick="setLayout('l2')"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="18" rx="1"/><rect x="13" y="3" width="8" height="18" rx="1"/></svg></div>
+      <div class="lbtn"        id="lb-l3" title="3 камеры" data-i18n-title="lb_l3" onclick="setLayout('l3')"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="9.5" y="3" width="5" height="18" rx="1"/><rect x="16" y="3" width="5" height="18" rx="1"/></svg></div>
+      <div class="lbtn"        id="lb-l4" title="4 камеры" data-i18n-title="lb_l4" onclick="setLayout('l4')"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg></div>
     </div>
     <div class="sep"></div>
-    <button class="btn btn-ghost btn-sm" onclick="addCamTile()"><svg class="svg-ic" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Добавить камеру</button>
-    <button class="btn btn-ghost btn-sm" onclick="takeAllSnapshots()"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Снимок всех</button>
+    <button class="btn btn-ghost btn-sm" onclick="addCamTile()"><svg class="svg-ic" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> <span data-i18n="tb_add_cam">Добавить камеру</span></button>
+    <button class="btn btn-ghost btn-sm" onclick="takeAllSnapshots()"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> <span data-i18n="tb_snap_all">Снимок всех</span></button>
     <div class="tgap"></div>
     <button class="btn btn-ghost btn-sm" id="remote-toggle-btn" onclick="toggleRemotePanel()" style="gap:6px">
       <span id="remote-srv-dot" style="width:6px;height:6px;border-radius:50%;background:var(--t3);display:inline-block;transition:background .3s"></span>
-      <svg class="svg-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> Сеть
+      <svg class="svg-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> <span data-i18n="tb_network">Сеть</span>
     </button>
-    <button class="btn btn-danger btn-sm" onclick="stopAll()"><svg class="svg-ic" viewBox="0 0 24 24" fill="currentColor"><rect width="14" height="14" x="5" y="5" rx="2"/></svg> Остановить все</button>
+    <button class="btn btn-danger btn-sm" onclick="stopAll()"><svg class="svg-ic" viewBox="0 0 24 24" fill="currentColor"><rect width="14" height="14" x="5" y="5" rx="2"/></svg> <span data-i18n="tb_stop_all">Остановить все</span></button>
   </div>
 
   <!-- Remote access panel -->
@@ -356,12 +366,13 @@
 
       <!-- Access Mode Select -->
       <div class="rp-section">
-        <div class="rp-label">Режим доступа</div>
+        <div class="rp-label" data-i18n="lbl_access_mode">Режим доступа</div>
         <select class="tcsel" id="srv-mode-select" style="min-width: 175px; margin-top: 4px;" onchange="onModeChange()">
-          <option value="lan">🌐 Локальная сеть (LAN)</option>
-          <option value="cloudflared">☁️ Cloudflare Tunnel</option>
-          <option value="localtunnel">🚇 LocalTunnel (loca.lt)</option>
-          <option value="custom">⚡ Pinggy / Свой URL</option>
+          <option value="lan" data-i18n="mode_lan">🌐 Локальная сеть (LAN)</option>
+          <option value="cloudflared" data-i18n="mode_cf">☁️ Cloudflare Tunnel</option>
+          <option value="localtunnel" data-i18n="mode_lt">🚇 LocalTunnel (loca.lt)</option>
+          <option value="pinggy" data-i18n="mode_pinggy">⚡ Pinggy Tunnel (*.pinggy.link)</option>
+          <option value="custom" data-i18n="mode_custom">🔗 Свой URL / Custom URL</option>
         </select>
       </div>
 
@@ -369,7 +380,7 @@
 
       <!-- IP Address Select (LAN only) -->
       <div class="rp-section" id="srv-ip-section">
-        <div class="rp-label">IP-адрес</div>
+        <div class="rp-label" data-i18n="lbl_ip">IP-адрес</div>
         <select class="tcsel" id="srv-ip-select" style="min-width: 140px; margin-top: 4px;" onchange="onIpChange()"></select>
       </div>
 
@@ -377,7 +388,7 @@
 
       <!-- Protocol Select (LAN only) -->
       <div class="rp-section" id="srv-proto-section">
-        <div class="rp-label">Протокол</div>
+        <div class="rp-label" data-i18n="lbl_proto">Протокол</div>
         <select class="tcsel" id="srv-proto-select" style="min-width: 90px; margin-top: 4px;" onchange="onProtoChange()">
           <option value="http">HTTP</option>
           <option value="https">HTTPS</option>
@@ -386,11 +397,11 @@
 
       <!-- Cloudflare Tunnel Status & Download -->
       <div class="rp-section" id="srv-cf-section" style="display:none;min-width:210px;">
-        <div class="rp-label">Cloudflare Tunnel</div>
+        <div class="rp-label" data-i18n="lbl_cf">Cloudflare Tunnel</div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
-          <span class="pill" id="cf-status-pill" style="font-size:11px;color:var(--green);border-color:rgba(74,222,128,0.3);background:rgba(74,222,128,0.08)">Проверка...</span>
+          <span class="pill" id="cf-status-pill" style="font-size:11px;color:var(--green);border-color:rgba(74,222,128,0.3);background:rgba(74,222,128,0.08)" data-i18n="cf_checking">Проверка...</span>
           <button class="btn btn-ghost btn-sm" id="cf-download-btn" style="display:none;padding:3px 8px;font-size:11px;gap:4px;" onclick="downloadCloudflared()">
-            <svg class="svg-ic" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Скачать
+            <svg class="svg-ic" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> <span data-i18n="cf_download_btn">Скачать</span>
           </button>
         </div>
         <div id="cf-download-progress-bar" style="display:none;width:100%;background:var(--bg3);height:6px;border-radius:4px;overflow:hidden;margin-top:6px;">
@@ -400,29 +411,43 @@
 
       <!-- LocalTunnel info -->
       <div class="rp-section" id="srv-lt-section" style="display:none;">
-        <div class="rp-label">LocalTunnel</div>
+        <div class="rp-label" data-i18n="lbl_lt">LocalTunnel</div>
         <div style="margin-top:4px;display:flex;align-items:center;">
-          <span class="pill" style="font-size:11px;color:var(--p2);border-color:rgba(6,182,212,0.3);background:rgba(6,182,212,0.08)">HTTPS без установки</span>
+          <span class="pill" style="font-size:11px;color:var(--p2);border-color:rgba(6,182,212,0.3);background:rgba(6,182,212,0.08)" data-i18n="lt_badge">HTTPS без установки</span>
         </div>
       </div>
 
-      <!-- Custom Tunnel / Pinggy input -->
+      <!-- Pinggy 4th-level domain direct input -->
+      <div class="rp-section" id="srv-pinggy-section" style="display:none;min-width:320px;">
+        <div class="rp-label" data-i18n="lbl_pinggy">Поддомен 4-го уровня Pinggy</div>
+        <div style="display:flex;align-items:center;gap:4px;margin-top:4px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:3px 8px;">
+          <span style="font-size:12px;color:var(--t3);font-family:'JetBrains Mono',monospace;">https://</span>
+          <input type="text" id="srv-pinggy-subdomain" placeholder="subdomain" style="background:transparent;border:none;color:var(--p2);font-size:12px;outline:none;font-family:'JetBrains Mono',monospace;width:120px;font-weight:600;" oninput="onPinggyInput()" />
+          <select id="srv-pinggy-suffix" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:11px;padding:3px 6px;outline:none;font-family:'JetBrains Mono',monospace;cursor:pointer;" onchange="onPinggyInput()">
+            <option value=".a.free.pinggy.link">.a.free.pinggy.link (Free)</option>
+            <option value=".a.pinggy.link">.a.pinggy.link (Pro)</option>
+            <option value=".free.pinggy.online">.free.pinggy.online</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Custom Tunnel / Any URL input -->
       <div class="rp-section" id="srv-custom-section" style="display:none;">
-        <div class="rp-label">URL туннеля (Pinggy и др.)</div>
-        <input type="text" id="srv-custom-url" placeholder="https://xxxx.a.free.pinggy.link" style="margin-top:4px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:12px;color:var(--text);outline:none;font-family:'JetBrains Mono',monospace;min-width:210px;" oninput="onCustomUrlInput()" />
+        <div class="rp-label" data-i18n="lbl_custom">URL туннеля (любой домен)</div>
+        <input type="text" id="srv-custom-url" placeholder="https://my-domain.xyz" style="margin-top:4px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:12px;color:var(--text);outline:none;font-family:'JetBrains Mono',monospace;min-width:210px;" oninput="onCustomUrlInput()" />
       </div>
 
       <!-- SSL Cert status -->
       <div class="rp-sep cert-element" style="display:none"></div>
       <div class="rp-section cert-element" style="display:none">
-        <div class="rp-label">SSL Сертификат</div>
+        <div class="rp-label" data-i18n="lbl_ssl">SSL Сертификат</div>
         <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
-          <span id="cert-status-text" style="font-size:12px;color:var(--t2)">Создан</span>
-          <button class="btn btn-ghost btn-sm" style="padding:4px 8px;font-size:11px" onclick="regenerateCert()">Обновить</button>
+          <span id="cert-status-text" style="font-size:12px;color:var(--t2)" data-i18n="cert_created">Создан</span>
+          <button class="btn btn-ghost btn-sm" style="padding:4px 8px;font-size:11px" onclick="regenerateCert()" data-i18n="cert_update_btn">Обновить</button>
         </div>
         <div style="display:flex;gap:6px;margin-top:6px" id="cert-download-actions">
-          <button class="btn btn-ghost btn-sm" style="padding:4px 8px;font-size:11px;gap:4px" onclick="downloadFile('cert')" title="Скачать файл сертификата для импорта на устройства"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg> Сертификат</button>
-          <button class="btn btn-ghost btn-sm" style="padding:4px 8px;font-size:11px;gap:4px" onclick="downloadFile('key')" title="Скачать приватный ключ SSL"><svg class="svg-ic" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg> Ключ</button>
+          <button class="btn btn-ghost btn-sm" style="padding:4px 8px;font-size:11px;gap:4px" onclick="downloadFile('cert')" data-i18n-title="cert_download_title" title="Скачать файл сертификата для импорта на устройства"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg> <span data-i18n="cert_btn">Сертификат</span></button>
+          <button class="btn btn-ghost btn-sm" style="padding:4px 8px;font-size:11px;gap:4px" onclick="downloadFile('key')" data-i18n-title="key_download_title" title="Скачать приватный ключ SSL"><svg class="svg-ic" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg> <span data-i18n="key_btn">Ключ</span></button>
         </div>
       </div>
 
@@ -430,10 +455,10 @@
 
       <!-- Password -->
       <div class="rp-section">
-        <div class="rp-label">Пароль доступа</div>
+        <div class="rp-label" data-i18n="lbl_pwd">Пароль доступа</div>
         <div class="pwd-display" style="margin-top: 4px;">
           <div class="pwd-box" id="rp-pwd">—</div>
-          <button class="btn btn-ghost btn-sm" onclick="genPassword()" title="Сгенерировать новый пароль"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg></button>
+          <button class="btn btn-ghost btn-sm" onclick="genPassword()" data-i18n-title="pwd_gen_title" title="Сгенерировать новый пароль"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg></button>
         </div>
       </div>
 
@@ -441,10 +466,10 @@
 
       <!-- Start/Stop server -->
       <div class="rp-section">
-        <div class="rp-label">Сервер</div>
+        <div class="rp-label" data-i18n="lbl_server">Сервер</div>
         <div style="display:flex;gap:6px;align-items:center;margin-top:4px">
-          <button class="btn btn-primary btn-sm" id="srv-btn" onclick="toggleServer()"><svg class="svg-ic" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg> Запустить</button>
-          <span class="pill" id="rp-port" style="font-size:11px;font-family:'JetBrains Mono',monospace">порт 8765</span>
+          <button class="btn btn-primary btn-sm" id="srv-btn" onclick="toggleServer()"><svg class="svg-ic" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg> <span data-i18n="srv_start_btn">Запустить</span></button>
+          <span class="pill" id="rp-port" style="font-size:11px;font-family:'JetBrains Mono',monospace"><span data-i18n="srv_port_lbl">порт</span> 8765</span>
         </div>
       </div>
 
@@ -452,11 +477,11 @@
 
       <!-- URL -->
       <div class="rp-section" id="rp-url-section" style="display:none">
-        <div class="rp-label">Адрес для подключения</div>
+        <div class="rp-label" data-i18n="lbl_conn_url">Адрес для подключения</div>
         <div class="rp-value" style="margin-top: 4px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
           <span class="rp-url" id="rp-url" onclick="copyURL()">—</span>
-          <button class="btn btn-ghost btn-sm" style="font-size:11px;gap:4px" onclick="copyURL()"><svg class="svg-ic" viewBox="0 0 24 24"><rect width="13" height="13" x="9" y="9" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Копировать</button>
-          <button class="btn btn-primary btn-sm" id="btn-show-qr" style="font-size:11px;gap:5px;background:linear-gradient(135deg,var(--p),var(--p2));box-shadow:0 2px 10px var(--pg);" onclick="showQrModal()"><svg class="svg-ic" viewBox="0 0 24 24"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg> QR-код для входа</button>
+          <button class="btn btn-ghost btn-sm" style="font-size:11px;gap:4px" onclick="copyURL()"><svg class="svg-ic" viewBox="0 0 24 24"><rect width="13" height="13" x="9" y="9" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> <span data-i18n="btn_copy">Копировать</span></button>
+          <button class="btn btn-primary btn-sm" id="btn-show-qr" style="font-size:11px;gap:5px;background:linear-gradient(135deg,var(--p),var(--p2));box-shadow:0 2px 10px var(--pg);" onclick="showQrModal()"><svg class="svg-ic" viewBox="0 0 24 24"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg> <span data-i18n="btn_qr_modal">QR-код для входа</span></button>
         </div>
       </div>
 
@@ -464,10 +489,10 @@
 
       <!-- Viewer count -->
       <div class="rp-section" id="rp-viewers-section" style="display:none">
-        <div class="rp-label">Зрители</div>
+        <div class="rp-label" data-i18n="lbl_viewers">Зрители</div>
         <div class="viewer-badge" id="viewer-badge" style="margin-top: 4px;">
           <div class="vb-dot"></div>
-          <span id="viewer-count">0 онлайн</span>
+          <span id="viewer-count">0 <span data-i18n="viewers_online">онлайн</span></span>
         </div>
       </div>
 
@@ -476,21 +501,21 @@
     <!-- Streaming configurations -->
     <div class="rp-inner">
       <div class="rp-section" style="flex: 1; min-width: 140px;">
-        <div class="rp-label">Частота кадров: <span id="val-fps">15</span> FPS</div>
+        <div class="rp-label"><span data-i18n="lbl_fps">Частота кадров</span>: <span id="val-fps">15</span> FPS</div>
         <input type="range" id="cfg-fps" min="5" max="30" step="5" value="15" oninput="updateCfg('fps', this.value)" style="width: 100%; margin-top: 6px; cursor: pointer;" />
       </div>
 
       <div class="rp-sep"></div>
 
       <div class="rp-section" style="flex: 1; min-width: 140px;">
-        <div class="rp-label">Качество: <span id="val-quality">50</span>%</div>
+        <div class="rp-label"><span data-i18n="lbl_quality">Качество</span>: <span id="val-quality">50</span>%</div>
         <input type="range" id="cfg-quality" min="10" max="95" step="5" value="50" oninput="updateCfg('quality', this.value)" style="width: 100%; margin-top: 6px; cursor: pointer;" />
       </div>
 
       <div class="rp-sep"></div>
 
       <div class="rp-section" style="flex: 1; min-width: 140px;">
-        <div class="rp-label">Разрешение: <span id="val-width">800</span>px</div>
+        <div class="rp-label"><span data-i18n="lbl_res">Разрешение</span>: <span id="val-width">800</span>px</div>
         <input type="range" id="cfg-width" min="320" max="1280" step="80" value="800" oninput="updateCfg('width', this.value)" style="width: 100%; margin-top: 6px; cursor: pointer;" />
       </div>
     </div>
@@ -498,11 +523,11 @@
     <!-- Recordings Folder configuration -->
     <div class="rp-inner" style="border-top: 1px solid var(--border); padding-top: 14px; margin-top: 14px;" id="record-dir-row">
       <div class="rp-section" style="flex: 1;">
-        <div class="rp-label">Папка для сохранения видеозаписей</div>
+        <div class="rp-label" data-i18n="lbl_rec_dir">Папка для сохранения видеозаписей</div>
         <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
           <input type="text" id="rec-dir-input" readonly style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px;color:var(--text);outline:none;font-family:'JetBrains Mono',monospace" value="Загрузка..." />
-          <button class="btn btn-ghost btn-sm" onclick="selectRecordDir()">Обзор...</button>
-          <button class="btn btn-ghost btn-sm" onclick="openRecordDir()" title="Открыть папку в Проводнике"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg></button>
+          <button class="btn btn-ghost btn-sm" onclick="selectRecordDir()" data-i18n="btn_browse">Обзор...</button>
+          <button class="btn btn-ghost btn-sm" onclick="openRecordDir()" data-i18n-title="btn_open_folder" title="Открыть папку в Проводнике"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg></button>
         </div>
       </div>
     </div>
@@ -511,15 +536,15 @@
   <div class="grid-area la" id="grid"></div>
 
   <div class="stats-bar">
-    <div class="stat"><span class="slbl">Активных</span><span class="sval g" id="s-active">0</span></div>
-    <div class="stat"><span class="slbl">Камер на ПК</span><span class="sval v" id="s-total">0</span></div>
-    <div class="stat"><span class="slbl">Снимков</span><span class="sval" id="s-snaps">0</span></div>
-    <div class="stat"><span class="slbl">Зрителей</span><span class="sval" id="s-viewers-bar">0</span></div>
+    <div class="stat"><span class="slbl" data-i18n="stat_active">Активных</span><span class="sval g" id="s-active">0</span></div>
+    <div class="stat"><span class="slbl" data-i18n="stat_total">Камер на ПК</span><span class="sval v" id="s-total">0</span></div>
+    <div class="stat"><span class="slbl" data-i18n="stat_snaps">Снимков</span><span class="sval" id="s-snaps">0</span></div>
+    <div class="stat"><span class="slbl" data-i18n="stat_viewers">Зрителей</span><span class="sval" id="s-viewers-bar">0</span></div>
   </div>
 
   <div class="snap-drawer" id="snap-drawer" style="display:none">
     <div class="snap-head" onclick="toggleSnapDrawer()">
-      <span class="snap-title"><svg class="svg-ic" viewBox="0 0 24 24" style="margin-right:6px"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>Снимки (<span id="snap-count">0</span>)</span>
+      <span class="snap-title"><svg class="svg-ic" viewBox="0 0 24 24" style="margin-right:6px"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg><span data-i18n="snap_title">Снимки</span> (<span id="snap-count">0</span>)</span>
       <span id="snap-arrow" style="color:var(--t3);display:flex;align-items:center"><svg class="svg-ic" viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg></span>
     </div>
     <div class="snap-body open" id="snap-body"></div>
@@ -536,23 +561,23 @@
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:32px;width:100%;max-width:550px;box-shadow:0 24px 64px rgba(0,0,0,0.6);display:flex;flex-direction:column;gap:18px;animation:tin 0.25s ease;">
     <div style="display:flex;align-items:center;gap:10px;">
       <svg class="svg-ic svg-ic-lg" viewBox="0 0 24 24" style="color:var(--p)"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h18"/></svg>
-      <h2 style="font-size:20px;font-weight:700;color:var(--text);margin:0;">Политика использования и конфиденциальности</h2>
+      <h2 style="font-size:20px;font-weight:700;color:var(--text);margin:0;" data-i18n="privacy_title">Политика использования и конфиденциальности</h2>
     </div>
     
     <div style="color:var(--t2);font-size:13px;line-height:1.65;display:flex;flex-direction:column;gap:12px;max-height:350px;overflow-y:auto;padding-right:8px;border-bottom:1px solid var(--border);padding-bottom:16px;">
-      <p><strong>1. Полная конфиденциальность данных:</strong> Все video-потоки с камер, записи и фотографии обрабатываются исключительно локально на вашем компьютере. Никакие данные не передаются разработчикам приложения или третьим лицам.</p>
+      <p data-i18n="privacy_p1"><strong>1. Полная конфиденциальность данных:</strong> Все video-потоки с камер, записи и фотографии обрабатываются исключительно локально на вашем компьютере. Никакие данные не передаются разработчикам приложения или третьим лицам.</p>
       
-      <p><strong>2. Локальное вещание:</strong> Передача потока на другие устройства (телефоны, планшеты) осуществляется напрямую через вашу локальную сеть. Защита соединения по HTTPS обеспечивается самоподписанным SSL-сертификатом.</p>
+      <p data-i18n="privacy_p2"><strong>2. Локальное вещание:</strong> Передача потока на другие устройства (телефоны, планшеты) осуществляется напрямую через вашу локальную сеть. Защита соединения по HTTPS обеспечивается самоподписанным SSL-сертификатом.</p>
       
-      <p><strong>3. Законность использования:</strong> Пользователь несет полную личную ответственность за использование данного программного обеспечения в соответствии с действующим законодательством вашей страны (включая законы о скрытом видеонаблюдении, защите персональных данных и тайне частной жизни).</p>
+      <p data-i18n="privacy_p3"><strong>3. Законность использования:</strong> Пользователь несет полную личную ответственность за использование данного программного обеспечения в соответствии с действующим законодательством вашей страны (включая законы о скрытом видеонаблюдении, защите персональных данных и тайне частной жизни).</p>
       
-      <p><strong>4. Запрет на негласное наблюдение:</strong> Строго запрещается использовать приложение для негласного (скрытого) получения информации, слежки за людьми без их ведома и согласия, а также для нарушения тайны частной жизни.</p>
+      <p data-i18n="privacy_p4"><strong>4. Запрет на негласное наблюдение:</strong> Строго запрещается использовать приложение для негласного (скрытого) получения информации, слежки за людьми без их ведома и согласия, а также для нарушения тайны частной жизни.</p>
       
-      <p><strong>5. Отказ от ответственности:</strong> Разработчик не несет ответственности за любой ущерб, упущенную выгоду или юридические последствия, вызванные неправомерным или неэтичным использованием программы.</p>
+      <p data-i18n="privacy_p5"><strong>5. Отказ от ответственности:</strong> Разработчик не несет ответственности за любой ущерб, упущенную выгоду или юридические последствия, вызванные неправомерным или неэтичным использованием программы.</p>
     </div>
     
     <div style="display:flex;justify-content:flex-end;">
-      <button class="btn btn-primary" onclick="hidePrivacyModal()">Понятно, согласен</button>
+      <button class="btn btn-primary" onclick="hidePrivacyModal()" data-i18n="privacy_agree_btn">Понятно, согласен</button>
     </div>
   </div>
 </div>
@@ -565,14 +590,14 @@
         <span style="color:var(--p2);display:flex;">
           <svg class="svg-ic svg-ic-lg" viewBox="0 0 24 24"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
         </span>
-        <h2 style="font-size:18px;font-weight:700;color:var(--text);margin:0;">QR-код для входа</h2>
+        <h2 style="font-size:18px;font-weight:700;color:var(--text);margin:0;" data-i18n="qr_title">QR-код для входа</h2>
       </div>
       <button class="btn btn-ghost btn-icon" onclick="hideQrModal()" style="border-radius:50%;width:32px;height:32px;">
         <svg class="svg-ic" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
     
-    <p style="color:var(--t2);font-size:13px;line-height:1.5;margin:0;">
+    <p style="color:var(--t2);font-size:13px;line-height:1.5;margin:0;" data-i18n="qr_hint">
       Наведите камеру смартфона на QR-код для мгновенного входа без ввода пароля:
     </p>
     
@@ -582,17 +607,17 @@
     
     <div style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:10px 14px;display:flex;flex-direction:column;gap:6px;text-align:left;">
       <div style="display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-size:10px;color:var(--t3);text-transform:uppercase;font-weight:700;">Ссылка быстрого входа</span>
-        <span style="font-size:11px;color:var(--green);font-weight:600;">Пароль включён</span>
+        <span style="font-size:10px;color:var(--t3);text-transform:uppercase;font-weight:700;" data-i18n="qr_quick_url">Ссылка быстрого входа</span>
+        <span style="font-size:11px;color:var(--green);font-weight:600;" data-i18n="qr_pwd_included">Пароль включён</span>
       </div>
       <span id="qr-full-url" style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--p2);word-break:break-all;">—</span>
     </div>
     
     <div style="display:flex;gap:10px;width:100%;">
       <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;gap:6px;" onclick="copyFullAuthURL()">
-        <svg class="svg-ic" viewBox="0 0 24 24"><rect width="13" height="13" x="9" y="9" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Копировать ссылку
+        <svg class="svg-ic" viewBox="0 0 24 24"><rect width="13" height="13" x="9" y="9" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> <span data-i18n="qr_copy_btn">Копировать ссылку</span>
       </button>
-      <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center;" onclick="hideQrModal()">
+      <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center;" onclick="hideQrModal()" data-i18n="qr_done_btn">
         Готово
       </button>
     </div>
@@ -647,10 +672,323 @@
   var useHttps = false;
   var fullAuthURL = null;
 
-  var accessMode = 'lan'; // 'lan' | 'cloudflared' | 'localtunnel' | 'custom'
+  var currentLang = 'ru';
+  var accessMode = 'lan'; // 'lan' | 'cloudflared' | 'localtunnel' | 'pinggy' | 'custom'
+  var pinggySubdomain = '';
+  var pinggySuffix = '.a.free.pinggy.link';
   var customTunnelUrl = '';
   var isCloudflaredInstalled = false;
   var isDownloadingCf = false;
+
+  // ─── Internationalization (RU / EN) ───────────────────────────────────────
+  var I18N = {
+    ru: {
+      app_title: 'CamView — Мультикамерный просмотр',
+      status_disconnected: 'Нет подключения',
+      status_connected: 'Подключено',
+      welcome_title: 'Мультикамерный просмотр',
+      welcome_sub: 'Смотрите сразу с нескольких камер. Удалённый просмотр по локальной сети и через интернет.',
+      welcome_start: 'Запустить',
+      welcome_perm_hint: 'Браузер запросит разрешение на использование камер',
+      welcome_privacy_hint: 'Нажимая «Запустить», вы принимаете',
+      welcome_privacy_link: 'Политику конфиденциальности и использования',
+      tb_layout: 'Раскладка:',
+      lb_la: 'Авто',
+      lb_l1: '1 камера',
+      lb_l2: '2 камеры',
+      lb_l3: '3 камеры',
+      lb_l4: '4 камеры',
+      tb_add_cam: 'Добавить камеру',
+      tb_snap_all: 'Снимок всех',
+      tb_network: 'Сеть',
+      tb_stop_all: 'Остановить все',
+      lbl_access_mode: 'Режим доступа',
+      mode_lan: '🌐 Локальная сеть (LAN)',
+      mode_cf: '☁️ Cloudflare Tunnel',
+      mode_lt: '🚇 LocalTunnel (loca.lt)',
+      mode_pinggy: '⚡ Pinggy Tunnel (*.pinggy.link)',
+      mode_custom: '🔗 Свой URL / Custom URL',
+      lbl_ip: 'IP-адрес',
+      lbl_proto: 'Протокол',
+      lbl_cf: 'Cloudflare Tunnel',
+      cf_checking: 'Проверка...',
+      cf_ready: 'Готов к работе',
+      cf_not_installed: 'Не установлен',
+      cf_download_btn: 'Скачать',
+      cf_downloading: 'Загрузка...',
+      cf_download_err: 'Ошибка загрузки',
+      cf_download_ok: 'Cloudflared успешно загружен',
+      lbl_lt: 'LocalTunnel',
+      lt_badge: 'HTTPS без установки',
+      lbl_pinggy: 'Поддомен 4-го уровня Pinggy',
+      lbl_custom: 'URL туннеля (любой домен)',
+      lbl_ssl: 'SSL Сертификат',
+      cert_created: 'Создан',
+      cert_not_created: 'Не создан',
+      cert_update_btn: 'Обновить',
+      cert_btn: 'Сертификат',
+      key_btn: 'Ключ',
+      cert_download_title: 'Скачать файл сертификата для импорта на устройства',
+      key_download_title: 'Скачать приватный ключ SSL',
+      lbl_pwd: 'Пароль доступа',
+      pwd_gen_title: 'Сгенерировать новый пароль',
+      lbl_server: 'Сервер',
+      srv_start_btn: 'Запустить',
+      srv_stop_btn: 'Остановить',
+      srv_starting: 'Запуск...',
+      srv_port_lbl: 'порт',
+      lbl_conn_url: 'Адрес для подключения',
+      btn_copy: 'Копировать',
+      btn_qr_modal: 'QR-код для входа',
+      lbl_viewers: 'Зрители',
+      viewers_online: 'онлайн',
+      lbl_fps: 'Частота кадров',
+      lbl_quality: 'Качество',
+      lbl_res: 'Разрешение',
+      lbl_rec_dir: 'Папка для сохранения видеозаписей',
+      btn_browse: 'Обзор...',
+      btn_open_folder: 'Открыть папку в Проводнике',
+      stat_active: 'Активных',
+      stat_total: 'Камер на ПК',
+      stat_snaps: 'Снимков',
+      stat_viewers: 'Зрителей',
+      snap_title: 'Снимки',
+      privacy_title: 'Политика использования и конфиденциальности',
+      privacy_p1: '<strong>1. Полная конфиденциальность данных:</strong> Все video-потоки с камер, записи и фотографии обрабатываются исключительно локально на вашем компьютере. Никакие данные не передаются разработчикам приложения или третьим лицам.',
+      privacy_p2: '<strong>2. Локальное вещание:</strong> Передача потока на другие устройства (телефоны, планшеты) осуществляется напрямую через вашу локальную сеть. Защита соединения по HTTPS обеспечивается самоподписанным SSL-сертификатом.',
+      privacy_p3: '<strong>3. Законность использования:</strong> Пользователь несет полную личную ответственность за использование данного программного обеспечения в соответствии с действующим законодательством вашей страны (включая законы о скрытом видеонаблюдении, защите персональных данных и тайне частной жизни).',
+      privacy_p4: '<strong>4. Запрет на негласное наблюдение:</strong> Строго запрещается использовать приложение для негласного (скрытого) получения информации, слежки за людьми без их ведома и согласия, а также для нарушения тайны частной жизни.',
+      privacy_p5: '<strong>5. Отказ от ответственности:</strong> Разработчик не несет ответственности за любой ущерб, упущенную выгоду или юридические последствия, вызванные неправомерным или неэтичным использованием программы.',
+      privacy_agree_btn: 'Понятно, согласен',
+      qr_title: 'QR-код для входа',
+      qr_hint: 'Наведите камеру смартфона на QR-код для мгновенного входа без ввода пароля:',
+      qr_quick_url: 'Ссылка быстрого входа',
+      qr_pwd_included: 'Пароль включён',
+      qr_copy_btn: 'Копировать ссылку',
+      qr_done_btn: 'Готово',
+      tile_mirror: 'Зеркало',
+      tile_snap: 'Снимок',
+      tile_rec: 'Запись',
+      tile_stop_rec: 'Стоп зап.',
+      tile_fs: 'Во весь экран',
+      tile_stop: 'Стоп',
+      tile_connecting: 'Подключение...',
+      tile_cam_stopped: 'Камера остановлена',
+      tile_cam_default: 'Камера',
+      tile_start: 'Запустить',
+      tile_del: 'Удалить',
+      toast_copied: 'Ссылка с паролем скопирована',
+      toast_url_copied: 'Скопировано: ',
+      toast_all_stopped: 'Все камеры остановлены',
+      toast_dev_updated: 'Устройства обновлены',
+      toast_ssl_ok: 'SSL сертификат успешно создан/обновлен',
+      toast_ssl_err: 'Ошибка генерации сертификата',
+      toast_cert_save_ok: 'Файл успешно сохранен',
+      toast_cert_not_yet: 'Сертификат еще не создан. Включите HTTPS или нажмите Обновить.',
+      toast_stream_available: 'Трансляция доступна: ',
+      toast_rec_saved: 'Запись сохранена в папку: ',
+      toast_rec_downloading: 'Запись скачивается: ',
+      toast_rec_started: 'Запись запущена: ',
+      toast_rec_stopped_title: 'Остановить запись',
+      toast_tunnel_err: 'Туннель был отключен',
+      toast_server_stopped: 'Сервер остановлен',
+      toast_rec_dir_changed: 'Папка сохранений изменена',
+      toast_rec_dir_err: 'Не удалось открыть папку',
+      toast_enter_pinggy: 'Введите поддомен Pinggy',
+      toast_enter_custom: 'Введите публичный URL для туннеля (например, Pinggy)',
+      toast_first_start_srv: 'Сначала запустите сервер',
+      toast_electron_only: 'Только в Electron-приложении',
+      toast_cam_perm_err: 'Доступ к камере запрещён',
+      toast_cf_connecting: 'Подключение Cloudflare Tunnel...',
+      toast_lt_connecting: 'Подключение LocalTunnel...',
+      toast_https_warn: 'Для HTTPS на удаленном устройстве нужно будет подтвердить самоподписанный сертификат'
+    },
+    en: {
+      app_title: 'CamView — Multi-Camera Viewer',
+      status_disconnected: 'Disconnected',
+      status_connected: 'Connected',
+      welcome_title: 'Multi-Camera Viewer',
+      welcome_sub: 'Watch multiple cameras simultaneously. Remote viewing via local network and the Internet.',
+      welcome_start: 'Launch',
+      welcome_perm_hint: 'The browser will request permission to access your cameras',
+      welcome_privacy_hint: 'By clicking «Launch», you accept the',
+      welcome_privacy_link: 'Privacy & Terms of Use Policy',
+      tb_layout: 'Layout:',
+      lb_la: 'Auto',
+      lb_l1: '1 camera',
+      lb_l2: '2 cameras',
+      lb_l3: '3 cameras',
+      lb_l4: '4 cameras',
+      tb_add_cam: 'Add Camera',
+      tb_snap_all: 'Snap All',
+      tb_network: 'Network',
+      tb_stop_all: 'Stop All',
+      lbl_access_mode: 'Access Mode',
+      mode_lan: '🌐 Local Network (LAN)',
+      mode_cf: '☁️ Cloudflare Tunnel',
+      mode_lt: '🚇 LocalTunnel (loca.lt)',
+      mode_pinggy: '⚡ Pinggy Tunnel (*.pinggy.link)',
+      mode_custom: '🔗 Custom URL / Any Domain',
+      lbl_ip: 'IP Address',
+      lbl_proto: 'Protocol',
+      lbl_cf: 'Cloudflare Tunnel',
+      cf_checking: 'Checking...',
+      cf_ready: 'Ready',
+      cf_not_installed: 'Not installed',
+      cf_download_btn: 'Download',
+      cf_downloading: 'Downloading...',
+      cf_download_err: 'Download error',
+      cf_download_ok: 'Cloudflared successfully downloaded',
+      lbl_lt: 'LocalTunnel',
+      lt_badge: 'HTTPS with zero setup',
+      lbl_pinggy: 'Pinggy 4th-level Subdomain',
+      lbl_custom: 'Tunnel URL (Any domain)',
+      lbl_ssl: 'SSL Certificate',
+      cert_created: 'Generated',
+      cert_not_created: 'Not generated',
+      cert_update_btn: 'Renew',
+      cert_btn: 'Certificate',
+      key_btn: 'Key',
+      cert_download_title: 'Download certificate file to import on devices',
+      key_download_title: 'Download SSL private key',
+      lbl_pwd: 'Access Password',
+      pwd_gen_title: 'Generate new password',
+      lbl_server: 'Server',
+      srv_start_btn: 'Start',
+      srv_stop_btn: 'Stop',
+      srv_starting: 'Starting...',
+      srv_port_lbl: 'port',
+      lbl_conn_url: 'Connection URL',
+      btn_copy: 'Copy',
+      btn_qr_modal: 'QR Code Login',
+      lbl_viewers: 'Viewers',
+      viewers_online: 'online',
+      lbl_fps: 'Framerate',
+      lbl_quality: 'Quality',
+      lbl_res: 'Resolution',
+      lbl_rec_dir: 'Recordings Folder',
+      btn_browse: 'Browse...',
+      btn_open_folder: 'Open folder in File Explorer',
+      stat_active: 'Active',
+      stat_total: 'PC Cameras',
+      stat_snaps: 'Snapshots',
+      stat_viewers: 'Viewers',
+      snap_title: 'Snapshots',
+      privacy_title: 'Privacy & Terms of Use Policy',
+      privacy_p1: '<strong>1. Complete Data Privacy:</strong> All camera video streams, recordings, and photos are processed strictly locally on your computer. No data is ever sent to developers or third parties.',
+      privacy_p2: '<strong>2. Local Streaming:</strong> Transmission of the stream to remote devices (phones, tablets) occurs directly over your local network. HTTPS protection is provided via a self-signed SSL certificate.',
+      privacy_p3: '<strong>3. Lawful Use:</strong> You bear full personal responsibility for using this software in compliance with the applicable laws of your country (including covert surveillance, privacy, and personal data regulations).',
+      privacy_p4: '<strong>4. Prohibited Covert Surveillance:</strong> It is strictly forbidden to use this application for covert surveillance, spying on individuals without their explicit knowledge and consent, or violating personal privacy.',
+      privacy_p5: '<strong>5. Disclaimer of Liability:</strong> The developer is not liable for any damages, losses, or legal liabilities arising from unlawful or unethical use of this application.',
+      privacy_agree_btn: 'Understood, I agree',
+      qr_title: 'QR Code Login',
+      qr_hint: 'Point your smartphone camera at the QR code for instant login without entering a password:',
+      qr_quick_url: 'Instant Login Link',
+      qr_pwd_included: 'Password included',
+      qr_copy_btn: 'Copy link',
+      qr_done_btn: 'Done',
+      tile_mirror: 'Mirror',
+      tile_snap: 'Snapshot',
+      tile_rec: 'Record',
+      tile_stop_rec: 'Stop rec.',
+      tile_fs: 'Fullscreen',
+      tile_stop: 'Stop',
+      tile_connecting: 'Connecting...',
+      tile_cam_stopped: 'Camera stopped',
+      tile_cam_default: 'Camera',
+      tile_start: 'Start',
+      tile_del: 'Remove',
+      toast_copied: 'Link with password copied',
+      toast_url_copied: 'Copied: ',
+      toast_all_stopped: 'All cameras stopped',
+      toast_dev_updated: 'Devices updated',
+      toast_ssl_ok: 'SSL certificate successfully generated/renewed',
+      toast_ssl_err: 'Certificate generation error',
+      toast_cert_save_ok: 'File successfully saved',
+      toast_cert_not_yet: 'Certificate not generated yet. Enable HTTPS or click Renew.',
+      toast_stream_available: 'Stream available: ',
+      toast_rec_saved: 'Recording saved to folder: ',
+      toast_rec_downloading: 'Recording downloading: ',
+      toast_rec_started: 'Recording started: ',
+      toast_rec_stopped_title: 'Stop recording',
+      toast_tunnel_err: 'Tunnel was disconnected',
+      toast_server_stopped: 'Server stopped',
+      toast_rec_dir_changed: 'Save directory changed',
+      toast_rec_dir_err: 'Failed to open directory',
+      toast_enter_pinggy: 'Enter Pinggy subdomain',
+      toast_enter_custom: 'Enter public URL for tunnel (e.g. Pinggy)',
+      toast_first_start_srv: 'Start the server first',
+      toast_electron_only: 'Only available in the Electron app',
+      toast_cam_perm_err: 'Camera access denied',
+      toast_cf_connecting: 'Connecting Cloudflare Tunnel...',
+      toast_lt_connecting: 'Connecting LocalTunnel...',
+      toast_https_warn: 'For HTTPS on remote device you may need to accept the self-signed certificate'
+    }
+  };
+
+  function t(key) {
+    var dict = I18N[currentLang] || I18N.ru;
+    return dict[key] || (I18N.ru[key] || key);
+  }
+
+  function setLanguage(lang) {
+    if (!I18N[lang]) lang = 'ru';
+    currentLang = lang;
+
+    var btnRu = document.getElementById('lang-btn-ru');
+    var btnEn = document.getElementById('lang-btn-en');
+    if (btnRu) btnRu.classList.toggle('active', lang === 'ru');
+    if (btnEn) btnEn.classList.toggle('active', lang === 'en');
+
+    document.documentElement.lang = lang;
+    document.title = t('app_title');
+
+    var els = document.querySelectorAll('[data-i18n]');
+    els.forEach(function(el) {
+      var k = el.getAttribute('data-i18n');
+      if (k) el.innerHTML = t(k);
+    });
+
+    var titleEls = document.querySelectorAll('[data-i18n-title]');
+    titleEls.forEach(function(el) {
+      var k = el.getAttribute('data-i18n-title');
+      if (k) el.title = t(k);
+    });
+
+    updateViewerUI();
+    updateCertStatus();
+    checkCloudflared();
+
+    var srvBtn = document.getElementById('srv-btn');
+    if (srvBtn) {
+      if (serverRunning) {
+        srvBtn.innerHTML = ICONS.stop + ' ' + t('srv_stop_btn');
+      } else {
+        srvBtn.innerHTML = ICONS.play + ' ' + t('srv_start_btn');
+      }
+    }
+
+    Object.keys(tiles).forEach(function(id) {
+      var nos = document.getElementById('tn-' + id);
+      if (nos) {
+        var span = nos.querySelector('span');
+        if (span) span.textContent = t('tile_cam_stopped');
+        var btn = nos.querySelector('button');
+        if (btn) btn.innerHTML = ICONS.play + '&nbsp;' + t('tile_start');
+      }
+      var loadEl = document.getElementById('tl-' + id);
+      if (loadEl) {
+        var lspan = loadEl.querySelector('span');
+        if (lspan) lspan.textContent = t('tile_connecting');
+      }
+      fillSelect(id);
+    });
+
+    localStorage.setItem('camview_lang', lang);
+    if (window.camBridge) {
+      window.camBridge.saveConfig({ language: lang });
+    }
+  }
 
   function onModeChange() {
     var sel = document.getElementById('srv-mode-select');
@@ -659,6 +997,7 @@
     var isLan = accessMode === 'lan';
     var isCf = accessMode === 'cloudflared';
     var isLt = accessMode === 'localtunnel';
+    var isPinggy = accessMode === 'pinggy';
     var isCustom = accessMode === 'custom';
 
     var ipSec = document.getElementById('srv-ip-section');
@@ -678,10 +1017,12 @@
 
     var cfSec = document.getElementById('srv-cf-section');
     var ltSec = document.getElementById('srv-lt-section');
+    var pinggySec = document.getElementById('srv-pinggy-section');
     var customSec = document.getElementById('srv-custom-section');
 
     if (cfSec) cfSec.style.display = isCf ? '' : 'none';
     if (ltSec) ltSec.style.display = isLt ? '' : 'none';
+    if (pinggySec) pinggySec.style.display = isPinggy ? '' : 'none';
     if (customSec) customSec.style.display = isCustom ? '' : 'none';
 
     if (isCf) {
@@ -691,6 +1032,47 @@
     if (window.camBridge) {
       window.camBridge.saveConfig({ accessMode: accessMode });
     }
+  }
+
+  function onPinggyInput() {
+    var subInp = document.getElementById('srv-pinggy-subdomain');
+    var suffixSel = document.getElementById('srv-pinggy-suffix');
+    var val = subInp ? subInp.value.trim() : '';
+    
+    // Auto-parse if user pastes a full pinggy URL: e.g. https://foo.a.free.pinggy.link or foo.a.pinggy.link
+    if (val.includes('.')) {
+      val = val.replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
+      if (val.includes('.a.free.pinggy.link')) {
+        if (suffixSel) suffixSel.value = '.a.free.pinggy.link';
+        val = val.replace('.a.free.pinggy.link', '');
+      } else if (val.includes('.a.pinggy.link')) {
+        if (suffixSel) suffixSel.value = '.a.pinggy.link';
+        val = val.replace('.a.pinggy.link', '');
+      } else if (val.includes('.free.pinggy.online')) {
+        if (suffixSel) suffixSel.value = '.free.pinggy.online';
+        val = val.replace('.free.pinggy.online', '');
+      }
+      if (subInp) subInp.value = val;
+    }
+    
+    pinggySubdomain = val;
+    pinggySuffix = suffixSel ? suffixSel.value : '.a.free.pinggy.link';
+    
+    if (window.camBridge) {
+      window.camBridge.saveConfig({
+        pinggySubdomain: pinggySubdomain,
+        pinggySuffix: pinggySuffix
+      });
+    }
+  }
+
+  function getPinggyFullURL() {
+    var subInp = document.getElementById('srv-pinggy-subdomain');
+    var suffixSel = document.getElementById('srv-pinggy-suffix');
+    var sub = subInp ? subInp.value.trim() : '';
+    var suffix = suffixSel ? suffixSel.value : '.a.free.pinggy.link';
+    if (!sub) return '';
+    return 'https://' + sub + suffix;
   }
 
   function onCustomUrlInput() {
@@ -710,7 +1092,7 @@
       var btn = document.getElementById('cf-download-btn');
       if (isCloudflaredInstalled) {
         if (pill) {
-          pill.textContent = 'Готов к работе';
+          pill.textContent = t('cf_ready');
           pill.style.color = 'var(--green)';
           pill.style.borderColor = 'rgba(74,222,128,0.3)';
           pill.style.background = 'rgba(74,222,128,0.08)';
@@ -718,7 +1100,7 @@
         if (btn) btn.style.display = 'none';
       } else {
         if (pill) {
-          pill.textContent = 'Не установлен';
+          pill.textContent = t('cf_not_installed');
           pill.style.color = 'var(--yellow)';
           pill.style.borderColor = 'rgba(251,191,36,0.3)';
           pill.style.background = 'rgba(251,191,36,0.08)';
@@ -739,7 +1121,7 @@
     if (btn) btn.style.display = 'none';
     if (pBar) pBar.style.display = 'block';
     if (pill) {
-      pill.textContent = 'Загрузка... 0%';
+      pill.textContent = t('cf_downloading') + ' 0%';
       pill.style.color = 'var(--p2)';
       pill.style.borderColor = 'rgba(6,182,212,0.3)';
       pill.style.background = 'rgba(6,182,212,0.08)';
@@ -748,15 +1130,15 @@
     try {
       var res = await window.camBridge.downloadCloudflared();
       if (res && res.ok) {
-        toast('success', 'Cloudflared успешно загружен');
+        toast('success', t('cf_download_ok'));
         checkCloudflared();
       } else {
-        toast('error', 'Ошибка загрузки: ' + (res ? res.error : 'Неизвестная ошибка'));
-        if (pill) pill.textContent = 'Ошибка загрузки';
+        toast('error', t('cf_download_err') + ': ' + (res ? res.error : ''));
+        if (pill) pill.textContent = t('cf_download_err');
         if (btn) btn.style.display = '';
       }
     } catch (err) {
-      toast('error', 'Ошибка загрузки: ' + err.message);
+      toast('error', t('cf_download_err') + ': ' + err.message);
       if (btn) btn.style.display = '';
     } finally {
       isDownloadingCf = false;
@@ -788,7 +1170,7 @@
 
   function showQrModal() {
     if (!serverRunning) {
-      toast('error', 'Сначала запустите сервер');
+      toast('error', t('toast_first_start_srv'));
       return;
     }
     updateQrCode();
@@ -802,7 +1184,7 @@
   function copyFullAuthURL() {
     if (!fullAuthURL) return;
     navigator.clipboard.writeText(fullAuthURL).then(function() {
-      toast('success', ICONS.copy + ' Ссылка с паролем скопирована');
+      toast('success', ICONS.copy + ' ' + t('toast_copied'));
     });
   }
 
@@ -813,7 +1195,7 @@
       try {
         var tmp = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
         tmp.getTracks().forEach(function(t){ t.stop(); });
-      } catch(e) { toast('error','Доступ к камере запрещён'); return; }
+      } catch(e) { toast('error', t('toast_cam_perm_err')); return; }
     }
     await refreshCams();
     document.getElementById('perm-screen').style.display = 'none';
@@ -824,6 +1206,13 @@
     
     if (window.camBridge) {
       var savedCfg = await window.camBridge.getConfig();
+      if (savedCfg && savedCfg.language) {
+        setLanguage(savedCfg.language);
+      } else {
+        var localLang = localStorage.getItem('camview_lang') || 'ru';
+        setLanguage(localLang);
+      }
+
       if (savedCfg && savedCfg.password) {
         serverPassword = savedCfg.password;
         document.getElementById('rp-pwd').textContent = serverPassword;
@@ -850,6 +1239,16 @@
         var modeSel = document.getElementById('srv-mode-select');
         if (modeSel) modeSel.value = accessMode;
       }
+      if (savedCfg && savedCfg.pinggySubdomain) {
+        pinggySubdomain = savedCfg.pinggySubdomain;
+        var pSub = document.getElementById('srv-pinggy-subdomain');
+        if (pSub) pSub.value = pinggySubdomain;
+      }
+      if (savedCfg && savedCfg.pinggySuffix) {
+        pinggySuffix = savedCfg.pinggySuffix;
+        var pSuf = document.getElementById('srv-pinggy-suffix');
+        if (pSuf) pSuf.value = pinggySuffix;
+      }
       if (savedCfg && savedCfg.customTunnelUrl) {
         customTunnelUrl = savedCfg.customTunnelUrl;
         var custInp = document.getElementById('srv-custom-url');
@@ -863,7 +1262,7 @@
           var pFill = document.getElementById('cf-download-fill');
           var pill = document.getElementById('cf-status-pill');
           if (pFill) pFill.style.width = p.percent + '%';
-          if (pill) pill.textContent = 'Загрузка... ' + p.percent + '%';
+          if (pill) pill.textContent = t('cf_downloading') + ' ' + p.percent + '%';
         });
       }
 
@@ -871,7 +1270,7 @@
       if (window.camBridge.onTunnelClosed) {
         window.camBridge.onTunnelClosed(function() {
           if (serverRunning && accessMode !== 'lan') {
-            toast('error', 'Туннель был отключен');
+            toast('error', t('toast_tunnel_err'));
             stopServer();
           }
         });
@@ -883,6 +1282,8 @@
         updateViewerUI();
       });
     } else {
+      var localLang = localStorage.getItem('camview_lang') || 'ru';
+      setLanguage(localLang);
       genPassword();
     }
   }
@@ -921,7 +1322,7 @@
       select.value = targetIP;
       selectedIP = targetIP;
     } catch(e) {
-      toast('error', 'Не удалось загрузить сетевые интерфейсы');
+      toast('error', currentLang === 'en' ? 'Failed to load network interfaces' : 'Не удалось загрузить сетевые интерфейсы');
     }
   }
 
@@ -930,10 +1331,10 @@
     var exists = await window.camBridge.checkCertExists();
     var textEl = document.getElementById('cert-status-text');
     if (exists) {
-      textEl.textContent = 'Создан';
+      textEl.textContent = t('cert_created');
       textEl.style.color = 'var(--green)';
     } else {
-      textEl.textContent = 'Не создан';
+      textEl.textContent = t('cert_not_created');
       textEl.style.color = 'var(--yellow)';
     }
   }
@@ -943,12 +1344,12 @@
     try {
       await window.camBridge.regenerateCert(selectedIP);
       await updateCertStatus();
-      toast('success', 'SSL сертификат успешно создан/обновлен');
+      toast('success', t('toast_ssl_ok'));
       if (serverRunning && useHttps) {
         await restartServer();
       }
     } catch(e) {
-      toast('error', 'Ошибка генерации сертификата');
+      toast('error', t('toast_ssl_err'));
     }
   }
 
@@ -957,12 +1358,12 @@
     try {
       var exists = await window.camBridge.checkCertExists();
       if (!exists) {
-        toast('error', 'Сертификат еще не создан. Включите HTTPS или нажмите Обновить.');
+        toast('error', t('toast_cert_not_yet'));
         return;
       }
       var saved = await window.camBridge.saveCertFile(type);
       if (saved) {
-        toast('success', 'Файл успешно сохранен');
+        toast('success', t('toast_cert_save_ok'));
       }
     } catch(e) {
       toast('error', e.message);
@@ -1026,7 +1427,7 @@
   }
 
   async function startServer() {
-    if (!window.camBridge) { toast('error','Только в Electron-приложении'); return; }
+    if (!window.camBridge) { toast('error', t('toast_electron_only')); return; }
     if (!serverPassword) genPassword();
 
     var selMode = document.getElementById('srv-mode-select');
@@ -1040,6 +1441,10 @@
       document.getElementById('srv-proto-select').disabled = true;
       var customInp = document.getElementById('srv-custom-url');
       if (customInp) customInp.disabled = true;
+      var pSub = document.getElementById('srv-pinggy-subdomain');
+      var pSuf = document.getElementById('srv-pinggy-suffix');
+      if (pSub) pSub.disabled = true;
+      if (pSuf) pSuf.disabled = true;
 
       // Start local server (HTTP is ideal for tunnels because tunnel provides official HTTPS)
       var config = {
@@ -1048,13 +1453,13 @@
         ipAddress: selectedIP
       };
       
-      btn.innerHTML = ICONS.play + ' Запуск...';
+      btn.innerHTML = ICONS.play + ' ' + t('srv_starting');
       var result = await window.camBridge.startServer(config);
       serverRunning = true;
 
       if (accessMode === 'cloudflared') {
         btn.innerHTML = ICONS.globe + ' Cloudflare...';
-        toast('info', 'Подключение Cloudflare Tunnel...');
+        toast('info', t('toast_cf_connecting'));
         var cfRes = await window.camBridge.startTunnel({
           type: 'cloudflared',
           port: result.port,
@@ -1062,27 +1467,43 @@
         });
         if (!cfRes || !cfRes.ok) {
           if (cfRes && cfRes.error === 'cloudflared_not_found') {
-            throw new Error('Cloudflared не найден. Нажмите "Скачать" в панели.');
+            throw new Error(currentLang === 'en' ? 'Cloudflared not found. Click "Download" in the panel.' : 'Cloudflared не найден. Нажмите "Скачать" в панели.');
           }
-          throw new Error(cfRes ? cfRes.error : 'Не удалось запустить Cloudflare Tunnel');
+          throw new Error(cfRes ? cfRes.error : (currentLang === 'en' ? 'Failed to launch Cloudflare Tunnel' : 'Не удалось запустить Cloudflare Tunnel'));
         }
         serverURL = cfRes.url;
       } else if (accessMode === 'localtunnel') {
         btn.innerHTML = ICONS.globe + ' LocalTunnel...';
-        toast('info', 'Подключение LocalTunnel...');
+        toast('info', t('toast_lt_connecting'));
         var ltRes = await window.camBridge.startTunnel({
           type: 'localtunnel',
           port: result.port,
           useHttps: result.useHttps
         });
         if (!ltRes || !ltRes.ok) {
-          throw new Error(ltRes ? ltRes.error : 'Не удалось запустить LocalTunnel');
+          throw new Error(ltRes ? ltRes.error : (currentLang === 'en' ? 'Failed to launch LocalTunnel' : 'Не удалось запустить LocalTunnel'));
         }
         serverURL = ltRes.url;
+      } else if (accessMode === 'pinggy') {
+        var pUrl = getPinggyFullURL();
+        if (!pUrl) {
+          throw new Error(t('toast_enter_pinggy'));
+        }
+        btn.innerHTML = ICONS.globe + ' Pinggy...';
+        toast('info', currentLang === 'en' ? 'Connecting Pinggy Tunnel...' : 'Подключение Pinggy Tunnel...');
+        var pRes = await window.camBridge.startTunnel({
+          type: 'pinggy',
+          customUrl: pUrl,
+          port: result.port
+        });
+        if (!pRes || !pRes.ok) {
+          throw new Error(pRes ? pRes.error : (currentLang === 'en' ? 'Invalid Pinggy URL' : 'Некорректный URL Pinggy'));
+        }
+        serverURL = pRes.url;
       } else if (accessMode === 'custom') {
         var cUrl = customInp ? customInp.value.trim() : '';
         if (!cUrl) {
-          throw new Error('Введите публичный URL для туннеля (например, Pinggy)');
+          throw new Error(t('toast_enter_custom'));
         }
         var custRes = await window.camBridge.startTunnel({
           type: 'custom',
@@ -1090,7 +1511,7 @@
           port: result.port
         });
         if (!custRes || !custRes.ok) {
-          throw new Error(custRes ? custRes.error : 'Некорректный URL туннеля');
+          throw new Error(custRes ? custRes.error : (currentLang === 'en' ? 'Invalid tunnel URL' : 'Некорректный URL туннеля'));
         }
         serverURL = custRes.url;
       } else {
@@ -1104,7 +1525,7 @@
       document.getElementById('rp-sep2').style.display = '';
       document.getElementById('rp-viewers-section').style.display = '';
 
-      btn.innerHTML = ICONS.stop + ' Остановить';
+      btn.innerHTML = ICONS.stop + ' ' + t('srv_stop_btn');
       btn.className = 'btn btn-danger btn-sm';
 
       document.getElementById('remote-srv-dot').style.background = 'var(--green)';
@@ -1112,13 +1533,13 @@
 
       startFrameCapture();
       updateQrCode();
-      toast('success', ICONS.globe + ' Трансляция доступна: ' + serverURL);
+      toast('success', ICONS.globe + ' ' + t('toast_stream_available') + serverURL);
       
       if (accessMode === 'lan' && useHttps) {
-        toast('info', 'Для HTTPS на удаленном устройстве нужно будет подтвердить самоподписанный сертификат');
+        toast('info', t('toast_https_warn'));
       }
     } catch(e) {
-      toast('error', 'Ошибка запуска: ' + (e.message || e));
+      toast('error', (currentLang === 'en' ? 'Launch error: ' : 'Ошибка запуска: ') + (e.message || e));
       await stopServer();
     }
   }
@@ -1138,7 +1559,7 @@
     document.getElementById('rp-viewers-section').style.display = 'none';
 
     var btn = document.getElementById('srv-btn');
-    btn.innerHTML = ICONS.play + ' Запустить';
+    btn.innerHTML = ICONS.play + ' ' + t('srv_start_btn');
     btn.className = 'btn btn-primary btn-sm';
 
     document.getElementById('remote-srv-dot').style.background = 'var(--t3)';
@@ -1149,10 +1570,14 @@
     document.getElementById('srv-proto-select').disabled = false;
     var customInp = document.getElementById('srv-custom-url');
     if (customInp) customInp.disabled = false;
+    var pSub = document.getElementById('srv-pinggy-subdomain');
+    var pSuf = document.getElementById('srv-pinggy-suffix');
+    if (pSub) pSub.disabled = false;
+    if (pSuf) pSuf.disabled = false;
 
     viewerCount = 0;
     updateViewerUI();
-    toast('info', ICONS.stop + ' Сервер остановлен');
+    toast('info', ICONS.stop + ' ' + t('toast_server_stopped'));
   }
 
   async function restartServer() {
@@ -1164,14 +1589,14 @@
   function copyURL() {
     if (!serverURL) return;
     navigator.clipboard.writeText(serverURL).then(function() {
-      toast('success', ICONS.copy + ' Скопировано: ' + serverURL);
+      toast('success', ICONS.copy + ' ' + t('toast_url_copied') + serverURL);
     });
   }
 
   function updateViewerUI() {
     var n = viewerCount;
     var badge = document.getElementById('viewer-badge');
-    document.getElementById('viewer-count').textContent = n + ' онлайн';
+    document.getElementById('viewer-count').textContent = n + ' ' + t('viewers_online');
     document.getElementById('s-viewers-bar').textContent = n;
     badge.classList.toggle('has-viewers', n > 0);
   }
@@ -1249,12 +1674,12 @@
       +   '<div class="tcdot" id="cd-'+id+'"></div>'
       +   '<select class="tcsel" id="cs-'+id+'" onchange="onSel(\''+id+'\',this.value)"></select>'
       +   '<div class="tacts">'
-      +     '<button class="btn btn-primary btn-icon" id="ss-'+id+'" title="Запустить/Стоп" onclick="toggleStream(\''+id+'\')">' + ICONS.play + '</button>'
-      +     '<button class="btn btn-ghost  btn-icon" id="mr-'+id+'" title="Зеркало"         onclick="toggleMirror(\''+id+'\')">' + ICONS.mirror + '</button>'
-      +     '<button class="btn btn-ghost  btn-icon"               title="Снимок"           onclick="doSnap(\''+id+'\')">' + ICONS.camera + '</button>'
-      +     '<button class="btn btn-ghost  btn-icon" id="rec-'+id+'" title="Запись"          onclick="toggleRecord(\''+id+'\')">' + ICONS.recordDot + '</button>'
-      +     '<button class="btn btn-ghost  btn-icon"               title="Полный экран"     onclick="toggleFullscreen(\''+id+'\')">' + ICONS.maximize + '</button>'
-      +     '<button class="btn btn-danger btn-icon"               title="Удалить"          onclick="removeTile(\''+id+'\')">' + ICONS.x + '</button>'
+      +     '<button class="btn btn-primary btn-icon" id="ss-'+id+'" title="' + t('tile_start') + '" onclick="toggleStream(\''+id+'\')">' + ICONS.play + '</button>'
+      +     '<button class="btn btn-ghost  btn-icon" id="mr-'+id+'" title="' + t('tile_mirror') + '" onclick="toggleMirror(\''+id+'\')">' + ICONS.mirror + '</button>'
+      +     '<button class="btn btn-ghost  btn-icon" title="' + t('tile_snap') + '" onclick="doSnap(\''+id+'\')">' + ICONS.camera + '</button>'
+      +     '<button class="btn btn-ghost  btn-icon" id="rec-'+id+'" title="' + t('tile_rec') + '" onclick="toggleRecord(\''+id+'\')">' + ICONS.recordDot + '</button>'
+      +     '<button class="btn btn-ghost  btn-icon" title="' + t('tile_fs') + '" onclick="toggleFullscreen(\''+id+'\')">' + ICONS.maximize + '</button>'
+      +     '<button class="btn btn-danger btn-icon" title="' + t('tile_del') + '" onclick="removeTile(\''+id+'\')">' + ICONS.x + '</button>'
       +   '</div>'
       + '</div>'
       + '<div class="tile-vw" id="vw-'+id+'">'
@@ -1263,20 +1688,20 @@
       +   '<div class="tinfo" id="ti-'+id+'"></div>'
       +   '<div class="fs-close-btn" onclick="toggleFullscreen(\''+id+'\')">' + ICONS.x + '</div>'
       +   '<div class="tload h" id="tl-'+id+'"><div class="spinner"></div>'
-      +     '<span style="color:var(--t2);font-size:12px">Подключение...</span></div>'
+      +     '<span style="color:var(--t2);font-size:12px">' + t('tile_connecting') + '</span></div>'
       +   '<div class="tnos" id="tn-'+id+'">'
       +     '<div class="tnos-icon">' + ICONS.videoOff + '</div>'
-      +     '<span style="font-size:13px;color:var(--t3)">Камера остановлена</span>'
-      +     '<button class="btn btn-primary" style="margin-top:14px;padding:10px 24px;font-size:14px" onclick="toggleStream(\''+id+'\')">' + ICONS.play + '&nbsp;Запустить</button>'
+      +     '<span style="font-size:13px;color:var(--t3)">' + t('tile_cam_stopped') + '</span>'
+      +     '<button class="btn btn-primary" style="margin-top:14px;padding:10px 24px;font-size:14px" onclick="toggleStream(\''+id+'\')">' + ICONS.play + '&nbsp;' + t('tile_start') + '</button>'
       +   '</div>'
       +   '<video class="tile-vid" id="vid-'+id+'" autoplay playsinline muted></video>'
       +   '<div class="t-ov">'
-      +     '<button class="btn btn-ghost btn-sm" onclick="toggleMirror(\''+id+'\')">' + ICONS.mirror + ' Зеркало</button>'
-      +     '<button class="btn btn-ghost btn-sm" onclick="doSnap(\''+id+'\')">' + ICONS.camera + ' Снимок</button>'
-      +     '<button class="btn btn-ghost btn-sm" id="rec-ov-'+id+'" onclick="toggleRecord(\''+id+'\')">' + ICONS.recordDot + ' Запись</button>'
-      +     '<button class="btn btn-ghost btn-sm" onclick="toggleFullscreen(\''+id+'\')">' + ICONS.maximize + ' Во весь экран</button>'
+      +     '<button class="btn btn-ghost btn-sm" onclick="toggleMirror(\''+id+'\')">' + ICONS.mirror + ' ' + t('tile_mirror') + '</button>'
+      +     '<button class="btn btn-ghost btn-sm" onclick="doSnap(\''+id+'\')">' + ICONS.camera + ' ' + t('tile_snap') + '</button>'
+      +     '<button class="btn btn-ghost btn-sm" id="rec-ov-'+id+'" onclick="toggleRecord(\''+id+'\')">' + ICONS.recordDot + ' ' + t('tile_rec') + '</button>'
+      +     '<button class="btn btn-ghost btn-sm" onclick="toggleFullscreen(\''+id+'\')">' + ICONS.maximize + ' ' + t('tile_fs') + '</button>'
       +     '<div style="flex:1"></div>'
-      +     '<button class="btn btn-danger btn-sm" onclick="stopStream(\''+id+'\')">' + ICONS.stop + ' Стоп</button>'
+      +     '<button class="btn btn-danger btn-sm" onclick="stopStream(\''+id+'\')">' + ICONS.stop + ' ' + t('tile_stop') + '</button>'
       +   '</div>'
       + '</div>';
     grid.appendChild(div);
@@ -1290,7 +1715,7 @@
     sel.innerHTML = '';
     allCameras.forEach(function(cam, i) {
       var o = document.createElement('option');
-      o.value = cam.deviceId; o.textContent = cam.label || ('Камера ' + (i+1));
+      o.value = cam.deviceId; o.textContent = cam.label || (t('tile_cam_default') + ' ' + (i+1));
       sel.appendChild(o);
     });
     if (cur) sel.value = cur;
@@ -1415,7 +1840,7 @@
 
   function stopAll() {
     Object.keys(tiles).forEach(function(id){ stopStream(id); });
-    toast('info', 'Все камеры остановлены');
+    toast('info', t('toast_all_stopped'));
   }
 
   function setBtnSS(id, streaming) {
@@ -1710,12 +2135,12 @@
             var arrayBuffer = await blob.arrayBuffer();
             var res = await window.camBridge.saveRecord({ filename: filename, buffer: arrayBuffer });
             if (res && res.ok) {
-              toast('success', 'Запись сохранена в папку: ' + filename);
+              toast('success', t('toast_rec_saved') + filename);
             } else {
-              toast('error', 'Ошибка сохранения: ' + (res ? res.error : 'Неизвестная ошибка'));
+              toast('error', (currentLang === 'en' ? 'Save error: ' : 'Ошибка сохранения: ') + (res ? res.error : ''));
             }
           } catch (err) {
-            toast('error', 'Ошибка конвертации записи: ' + err.message);
+            toast('error', (currentLang === 'en' ? 'Recording conversion error: ' : 'Ошибка конвертации записи: ') + err.message);
           }
         } else {
           var url = URL.createObjectURL(blob);
@@ -1723,7 +2148,7 @@
           a.href = url;
           a.download = filename;
           a.click();
-          toast('success', 'Запись скачивается: ' + filename);
+          toast('success', t('toast_rec_downloading') + filename);
         }
         
         tile.recordedChunks = [];
@@ -1732,9 +2157,9 @@
       tile.mediaRecorder.start(1000);
       tile.recording = true;
       updateRecordUI(id, true);
-      toast('info', ICONS.recordDot + ' Запись запущена: ' + camLabel(tile.deviceId));
+      toast('info', ICONS.recordDot + ' ' + t('toast_rec_started') + camLabel(tile.deviceId));
     } catch (e) {
-      toast('error', 'Ошибка записи: ' + e.message);
+      toast('error', (currentLang === 'en' ? 'Recording error: ' : 'Ошибка записи: ') + e.message);
     }
   }
 
@@ -1754,7 +2179,7 @@
     if (btn) {
       btn.innerHTML = isRecording ? ICONS.recordSquare : ICONS.recordDot;
       btn.className = isRecording ? 'btn btn-danger btn-icon recording-blink' : 'btn btn-ghost btn-icon';
-      btn.title = isRecording ? 'Остановить запись' : 'Запись';
+      btn.title = isRecording ? t('toast_rec_stopped_title') : t('tile_rec');
       if (isRecording) {
         btn.style.color = '#fff';
         btn.style.background = 'var(--red)';
@@ -1765,14 +2190,14 @@
     }
     
     if (btnOv) {
-      btnOv.innerHTML = isRecording ? (ICONS.stop + ' Стоп зап.') : (ICONS.recordDot + ' Запись');
+      btnOv.innerHTML = isRecording ? (ICONS.stop + ' ' + t('tile_stop_rec')) : (ICONS.recordDot + ' ' + t('tile_rec'));
       btnOv.className = isRecording ? 'btn btn-danger btn-sm' : 'btn btn-ghost btn-sm';
     }
   }
 
   // ─── Device change ────────────────────────────────────────────────────────
   if (navigator.mediaDevices)
-    navigator.mediaDevices.addEventListener('devicechange', async function(){ await refreshCams(); toast('info','Устройства обновлены'); });
+    navigator.mediaDevices.addEventListener('devicechange', async function(){ await refreshCams(); toast('info', t('toast_dev_updated')); });
 
   // Auto-start in Electron
   window.addEventListener('DOMContentLoaded', function() {
@@ -1788,7 +2213,7 @@
         var dir = await window.camBridge.getRecordDir();
         document.getElementById('rec-dir-input').value = dir;
       } catch (e) {
-        document.getElementById('rec-dir-input').value = 'Ошибка загрузки пути';
+        document.getElementById('rec-dir-input').value = currentLang === 'en' ? 'Error loading path' : 'Ошибка загрузки пути';
       }
     } else {
       if (row) row.style.display = 'none';
@@ -1800,7 +2225,7 @@
       var dir = await window.camBridge.selectRecordDir();
       if (dir) {
         document.getElementById('rec-dir-input').value = dir;
-        toast('success', 'Папка сохранений изменена');
+        toast('success', t('toast_rec_dir_changed'));
       }
     }
   }
@@ -1809,7 +2234,7 @@
     if (window.camBridge && window.camBridge.openRecordDir) {
       var success = await window.camBridge.openRecordDir();
       if (!success) {
-        toast('error', 'Не удалось открыть папку');
+        toast('error', t('toast_rec_dir_err'));
       }
     }
   }

@@ -290,6 +290,12 @@
         font-size: 11px;
       }
     }
+
+    /* Language switcher */
+    .lang-switch { display: flex; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 2px; gap: 2px; }
+    .lang-btn { background: none; border: none; color: var(--t3); font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; cursor: pointer; transition: all .15s; font-family: inherit; }
+    .lang-btn:hover { color: var(--text); }
+    .lang-btn.active { background: var(--p); color: #fff; box-shadow: 0 1px 4px var(--pg); }
   </style>
 </head>
 <body>
@@ -297,34 +303,38 @@
 <header>
   <div class="logo"><div class="logo-box"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div>CamView Remote</div>
   <div class="hgap"></div>
-  <div class="conn-pill"><div class="cpd" id="cpd"></div><span id="conn-lbl">Не подключено</span></div>
+  <div class="lang-switch">
+    <button class="lang-btn active" id="lang-btn-ru" onclick="setLanguage('ru')">RU</button>
+    <button class="lang-btn" id="lang-btn-en" onclick="setLanguage('en')">EN</button>
+  </div>
+  <div class="conn-pill"><div class="cpd" id="cpd"></div><span id="conn-lbl" data-i18n="conn_disconnected">Не подключено</span></div>
 </header>
 
 <!-- Login -->
 <div id="login-screen">
   <div class="login-box">
     <div class="login-icon"><svg class="svg-ic svg-ic-xl" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-    <div class="login-title">Удалённый просмотр</div>
-    <p class="login-sub">Введите пароль, установленный в приложении CamView на компьютере с камерами</p>
+    <div class="login-title" data-i18n="login_title">Удалённый просмотр</div>
+    <p class="login-sub" data-i18n="login_sub">Введите пароль, установленный в приложении CamView на компьютере с камерами</p>
     <div class="input-wrap">
       <input class="pwd-input" id="pwd" type="password" placeholder="Пароль доступа" autocomplete="current-password" />
       <button class="eye-btn" id="eye" onclick="toggleEye()"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
     </div>
-    <button class="conn-btn" onclick="doLogin()">Подключиться</button>
+    <button class="conn-btn" id="login-btn" onclick="doLogin()" data-i18n="login_btn">Подключиться</button>
     <div style="display:flex;align-items:center;gap:10px;margin:2px 0;">
       <div style="height:1px;background:var(--border);flex:1;"></div>
-      <span style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;">или</span>
+      <span style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;" data-i18n="login_or">или</span>
       <div style="height:1px;background:var(--border);flex:1;"></div>
     </div>
     <button type="button" class="conn-btn" onclick="openQrScanner()" style="background:var(--bg3);color:var(--p2);border:1px solid rgba(6,182,212,.3);box-shadow:none;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;padding:11px;">
       <svg class="svg-ic" viewBox="0 0 24 24"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
-      Сканировать QR-код
+      <span data-i18n="login_qr_btn">Сканировать QR-код</span>
     </button>
     <p style="font-size:10px;color:var(--t3);text-align:center;margin-top:6px;line-height:1.4;">
-      Подключаясь, вы подтверждаете законность использования и соглашаетесь с 
-      <span style="color:var(--p2);cursor:pointer;text-decoration:underline;" onclick="showPrivacyModal()">Политикой использования</span>
+      <span data-i18n="login_privacy_hint">Подключаясь, вы подтверждаете законность использования и соглашаетесь с</span> 
+      <span style="color:var(--p2);cursor:pointer;text-decoration:underline;" onclick="showPrivacyModal()" data-i18n="login_privacy_link">Политикой использования</span>
     </p>
-    <div class="login-err" id="err-msg">Неверный пароль. Попробуйте ещё раз.</div>
+    <div class="login-err" id="err-msg" data-i18n="login_err_pwd">Неверный пароль. Попробуйте ещё раз.</div>
   </div>
 </div>
 
@@ -336,13 +346,13 @@
         <span style="color:var(--p2);display:flex;">
           <svg class="svg-ic" viewBox="0 0 24 24"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
         </span>
-        <h3 style="font-size:17px;font-weight:700;color:var(--text);margin:0;">Сканирование QR-кода</h3>
+        <h3 style="font-size:17px;font-weight:700;color:var(--text);margin:0;" data-i18n="qr_scan_title">Сканирование QR-кода</h3>
       </div>
       <button class="btn btn-ghost btn-icon" onclick="closeQrScanner()" style="border-radius:50%;width:32px;height:32px;background:var(--bg3);border:1px solid var(--border);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;">
         <svg class="svg-ic" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
-    <p style="color:var(--t2);font-size:12px;margin:0;">Наведите камеру на QR-код на экране компьютера:</p>
+    <p style="color:var(--t2);font-size:12px;margin:0;" data-i18n="qr_scan_hint">Наведите камеру на QR-код на экране компьютера:</p>
     
     <div style="position:relative;width:100%;aspect-ratio:1/1;max-width:280px;border-radius:16px;overflow:hidden;background:#000;border:2px solid var(--p2);">
       <video id="qr-video" playsinline muted autoplay style="width:100%;height:100%;object-fit:cover;"></video>
@@ -351,8 +361,8 @@
       <div style="position:absolute;inset:20px;border:2px dashed rgba(255,255,255,0.6);border-radius:12px;pointer-events:none;"></div>
     </div>
     
-    <div id="qr-scan-status" style="font-size:12px;color:var(--t3);">Поиск QR-кода...</div>
-    <button class="conn-btn" onclick="closeQrScanner()" style="width:100%;padding:10px;font-size:13px;background:var(--bg3);color:var(--text);border:1px solid var(--border);box-shadow:none;">Отмена</button>
+    <div id="qr-scan-status" style="font-size:12px;color:var(--t3);" data-i18n="qr_scan_status_connecting">Подключение к камере...</div>
+    <button class="conn-btn" onclick="closeQrScanner()" style="width:100%;padding:10px;font-size:13px;background:var(--bg3);color:var(--text);border:1px solid var(--border);box-shadow:none;" data-i18n="qr_scan_cancel_btn">Отмена</button>
   </div>
 </div>
 
@@ -361,19 +371,19 @@
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:32px;width:100%;max-width:500px;box-shadow:0 24px 64px rgba(0,0,0,0.6);display:flex;flex-direction:column;gap:18px;animation:fin 0.25s ease;">
     <div style="display:flex;align-items:center;gap:10px;">
       <svg class="svg-ic svg-ic-lg" viewBox="0 0 24 24" style="color:var(--p)"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h18"/></svg>
-      <h2 style="font-size:18px;font-weight:700;color:var(--text);margin:0;">Политика использования</h2>
+      <h2 style="font-size:18px;font-weight:700;color:var(--text);margin:0;" data-i18n="privacy_title">Политика использования</h2>
     </div>
     
     <div style="color:var(--t2);font-size:12px;line-height:1.65;display:flex;flex-direction:column;gap:12px;max-height:300px;overflow-y:auto;padding-right:8px;border-bottom:1px solid var(--border);padding-bottom:16px;">
-      <p><strong>1. Безопасность данных:</strong> Поток с камер транслируется в зашифрованном виде напрямую с компьютера-сервера. Разработчики или сторонние службы не имеют доступа к вашему видеопотоку.</p>
+      <p data-i18n="privacy_p1"><strong>1. Безопасность данных:</strong> Поток с камер транслируется в зашифрованном виде напрямую с компьютера-сервера. Разработчики или сторонние службы не имеют доступа к вашему видеопотоку.</p>
       
-      <p><strong>2. Соблюдение законодательства:</strong> Использование камер для удаленного просмотра должно соответствовать законам о защите частной жизни. Запрещено негласное наблюдение за людьми без их явного согласия.</p>
+      <p data-i18n="privacy_p2"><strong>2. Соблюдение законодательства:</strong> Использование камер для удаленного просмотра должно соответствовать законам о защите частной жизни. Запрещено негласное наблюдение за людьми без их явного согласия.</p>
       
-      <p><strong>3. Ответственность:</strong> Пользователь несет личную ответственность за несанкционированный доступ, передачу паролей третьим лицам или использование трансляции в противоправных целях.</p>
+      <p data-i18n="privacy_p3"><strong>3. Ответственность:</strong> Пользователь несет личную ответственность за несанкционированный доступ, передачу паролей третьим лицам или использование трансляции в противоправных целях.</p>
     </div>
     
     <div style="display:flex;justify-content:flex-end;">
-      <button class="conn-btn" style="padding:8px 20px;font-size:13px;width:auto;" onclick="hidePrivacyModal()">Принять</button>
+      <button class="conn-btn" style="padding:8px 20px;font-size:13px;width:auto;" onclick="hidePrivacyModal()" data-i18n="privacy_agree_btn">Принять</button>
     </div>
   </div>
 </div>
@@ -381,11 +391,11 @@
 <!-- Viewer -->
 <div id="viewer-screen">
   <div class="viewer-toolbar">
-    <span class="vt-label">Подключение:</span>
+    <span class="vt-label" data-i18n="vt_conn">Подключение:</span>
     <span class="vt-val" id="vt-url">—</span>
-    <span class="vt-label" style="margin-left:16px">Зрителей на сервере:</span>
+    <span class="vt-label" style="margin-left:16px" data-i18n="vt_viewers">Зрителей на сервере:</span>
     <span class="vt-val" id="vt-viewers">—</span>
-    <span class="vt-label" style="margin-left:16px">Камер:</span>
+    <span class="vt-label" style="margin-left:16px" data-i18n="vt_cams">Камер:</span>
     <span class="vt-val" id="vt-cams">0</span>
     <div style="flex:1"></div>
     <span class="vt-label" id="vt-fps" style="font-family:'JetBrains Mono',monospace"></span>
@@ -393,16 +403,16 @@
   <div id="cam-grid"></div>
   <div id="no-cams" style="display:none">
     <div id="no-cams-icon"><svg class="svg-ic svg-ic-xl" viewBox="0 0 24 24"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/></svg></div>
-    <span>Ожидаем трансляцию с камер...</span>
-    <span style="font-size:12px;color:var(--t3)">Убедитесь, что камеры активны в CamView</span>
+    <span data-i18n="no_cams_waiting">Ожидаем трансляцию с камер...</span>
+    <span style="font-size:12px;color:var(--t3)" data-i18n="no_cams_hint">Убедитесь, что камеры активны в CamView</span>
   </div>
 </div>
 
 <!-- Reconnect overlay -->
 <div id="reconnect-overlay">
-  <div class="ro-title" style="display:flex;align-items:center;gap:8px;"><svg class="svg-ic svg-ic-lg" viewBox="0 0 24 24" style="color:var(--red)"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Соединение потеряно</div>
-  <div class="ro-sub">Сервер недоступен или завершил работу</div>
-  <button class="ro-btn" onclick="location.reload()">Переподключиться</button>
+  <div class="ro-title" style="display:flex;align-items:center;gap:8px;"><svg class="svg-ic svg-ic-lg" viewBox="0 0 24 24" style="color:var(--red)"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span data-i18n="ro_title">Соединение потеряно</span></div>
+  <div class="ro-sub" data-i18n="ro_sub">Сервер недоступен или завершил работу</div>
+  <button class="ro-btn" onclick="location.reload()" data-i18n="ro_btn">Переподключиться</button>
 </div>
 
 <script>
@@ -420,6 +430,128 @@
   var globalFrames = 0;
   var globalFpsTimer = null;
 
+  // ─── Internationalization (RU / EN) ───────────────────────────────────────
+  var currentLang = 'ru';
+  var I18N = {
+    ru: {
+      app_title: 'CamView Remote',
+      conn_disconnected: 'Не подключено',
+      conn_connected: 'Подключено',
+      conn_lost: 'Соединение потеряно',
+      login_title: 'Удалённый просмотр',
+      login_sub: 'Введите пароль, установленный в приложении CamView на компьютере с камерами',
+      login_pwd_placeholder: 'Пароль доступа',
+      login_btn: 'Подключиться',
+      login_btn_logging_in: 'Вход...',
+      login_or: 'или',
+      login_qr_btn: 'Сканировать QR-код',
+      login_privacy_hint: 'Подключаясь, вы подтверждаете законность использования и соглашаетесь с',
+      login_privacy_link: 'Политикой использования',
+      login_err_pwd: 'Неверный пароль. Попробуйте ещё раз.',
+      login_err_conn: 'Ошибка подключения к серверу',
+      qr_scan_title: 'Сканирование QR-кода',
+      qr_scan_hint: 'Наведите камеру на QR-код на экране компьютера:',
+      qr_scan_status_connecting: 'Подключение к камере...',
+      qr_scan_status_aim: 'Наведите камеру на QR-код',
+      qr_scan_status_found: 'QR-код распознан!',
+      qr_scan_status_err: 'Ошибка доступа к камере: ',
+      qr_scan_cancel_btn: 'Отмена',
+      privacy_title: 'Политика использования',
+      privacy_p1: '<strong>1. Безопасность данных:</strong> Поток с камер транслируется в зашифрованном виде напрямую с компьютера-сервера. Разработчики или сторонние службы не имеют доступа к вашему видеопотоку.',
+      privacy_p2: '<strong>2. Соблюдение законодательства:</strong> Использование камер для удаленного просмотра должно соответствовать законам о защите частной жизни. Запрещено негласное наблюдение за людьми без их явного согласия.',
+      privacy_p3: '<strong>3. Ответственность:</strong> Пользователь несет личную ответственность за несанкционированный доступ, передачу паролей третьим лицам или использование трансляции в противоправных целях.',
+      privacy_agree_btn: 'Принять',
+      vt_conn: 'Подключение:',
+      vt_viewers: 'Зрителей на сервере:',
+      vt_cams: 'Камер:',
+      no_cams_waiting: 'Ожидаем трансляцию с камер...',
+      no_cams_hint: 'Убедитесь, что камеры активны в CamView',
+      ro_title: 'Соединение потеряно',
+      ro_sub: 'Сервер недоступен или завершил работу',
+      ro_btn: 'Переподключиться',
+      ctile_wait: 'Ожидание кадра...',
+      ctile_default: 'Камера',
+      ctile_fs: 'На весь экран'
+    },
+    en: {
+      app_title: 'CamView Remote',
+      conn_disconnected: 'Disconnected',
+      conn_connected: 'Connected',
+      conn_lost: 'Connection lost',
+      login_title: 'Remote Viewer',
+      login_sub: 'Enter the password set in CamView on your camera computer',
+      login_pwd_placeholder: 'Access password',
+      login_btn: 'Connect',
+      login_btn_logging_in: 'Connecting...',
+      login_or: 'or',
+      login_qr_btn: 'Scan QR Code',
+      login_privacy_hint: 'By connecting, you confirm lawful use and agree to the',
+      login_privacy_link: 'Terms of Use Policy',
+      login_err_pwd: 'Incorrect password. Please try again.',
+      login_err_conn: 'Connection error to server',
+      qr_scan_title: 'Scan QR Code',
+      qr_scan_hint: 'Point your camera at the QR code on the PC screen:',
+      qr_scan_status_connecting: 'Connecting to camera...',
+      qr_scan_status_aim: 'Point camera at the QR code',
+      qr_scan_status_found: 'QR Code detected!',
+      qr_scan_status_err: 'Camera access error: ',
+      qr_scan_cancel_btn: 'Cancel',
+      privacy_title: 'Terms of Use Policy',
+      privacy_p1: '<strong>1. Data Security:</strong> The camera stream is encrypted directly from the host computer. Developers or third-party services have no access to your video stream.',
+      privacy_p2: '<strong>2. Lawful Compliance:</strong> Using cameras for remote viewing must comply with privacy laws. Covert surveillance without explicit consent is strictly prohibited.',
+      privacy_p3: '<strong>3. Responsibility:</strong> You bear personal responsibility for unauthorized access, sharing passwords, or using the stream for illegal purposes.',
+      privacy_agree_btn: 'Accept',
+      vt_conn: 'Connection:',
+      vt_viewers: 'Server viewers:',
+      vt_cams: 'Cameras:',
+      no_cams_waiting: 'Waiting for camera stream...',
+      no_cams_hint: 'Ensure cameras are active in CamView on PC',
+      ro_title: 'Connection lost',
+      ro_sub: 'Server is unreachable or stopped',
+      ro_btn: 'Reconnect',
+      ctile_wait: 'Waiting for frame...',
+      ctile_default: 'Camera',
+      ctile_fs: 'Fullscreen'
+    }
+  };
+
+  function t(key) {
+    var dict = I18N[currentLang] || I18N.ru;
+    return dict[key] || (I18N.ru[key] || key);
+  }
+
+  function setLanguage(lang) {
+    if (!I18N[lang]) lang = 'ru';
+    currentLang = lang;
+
+    var btnRu = document.getElementById('lang-btn-ru');
+    var btnEn = document.getElementById('lang-btn-en');
+    if (btnRu) btnRu.classList.toggle('active', lang === 'ru');
+    if (btnEn) btnEn.classList.toggle('active', lang === 'en');
+
+    document.documentElement.lang = lang;
+    document.title = t('app_title');
+
+    var pwdInp = document.getElementById('pwd');
+    if (pwdInp) pwdInp.placeholder = t('login_pwd_placeholder');
+
+    var els = document.querySelectorAll('[data-i18n]');
+    els.forEach(function(el) {
+      var k = el.getAttribute('data-i18n');
+      if (k) el.innerHTML = t(k);
+    });
+
+    if (es && es.readyState === EventSource.OPEN) {
+      document.getElementById('conn-lbl').textContent = t('conn_connected');
+    } else if (es && es.readyState === EventSource.CLOSED) {
+      document.getElementById('conn-lbl').textContent = t('conn_lost');
+    } else {
+      document.getElementById('conn-lbl').textContent = t('conn_disconnected');
+    }
+
+    localStorage.setItem('camview_lang', lang);
+  }
+
   // ── Login ──────────────────────────────────────────────────────────────────
   async function doLogin() {
     var pwd = document.getElementById('pwd').value.trim();
@@ -427,9 +559,9 @@
     var err = document.getElementById('err-msg');
     err.classList.remove('show');
     
-    var btn = document.querySelector('.conn-btn');
-    var originalText = btn.textContent;
-    btn.textContent = 'Вход...';
+    var btn = document.getElementById('login-btn');
+    var originalText = btn.innerHTML;
+    btn.textContent = t('login_btn_logging_in');
     btn.disabled = true;
 
     try {
@@ -444,17 +576,17 @@
         localStorage.setItem('camview_remote_pwd', pwd);
         startViewer();
       } else {
-        err.textContent = 'Неверный пароль. Попробуйте ещё раз.';
+        err.textContent = t('login_err_pwd');
         err.classList.add('show');
         localStorage.removeItem('camview_remote_pwd');
         document.getElementById('pwd').value = '';
         document.getElementById('pwd').focus();
       }
     } catch(e) {
-      err.textContent = 'Ошибка подключения к серверу';
+      err.textContent = t('login_err_conn');
       err.classList.add('show');
     } finally {
-      btn.textContent = originalText;
+      btn.innerHTML = originalText;
       btn.disabled = false;
     }
   }
@@ -472,6 +604,12 @@
 
   // Auto-login if password is provided in URL (?pwd=...) or saved in localStorage
   window.addEventListener('DOMContentLoaded', function() {
+    var savedLang = localStorage.getItem('camview_lang');
+    if (!savedLang) {
+      savedLang = (navigator.language && navigator.language.toLowerCase().startsWith('en')) ? 'en' : 'ru';
+    }
+    setLanguage(savedLang);
+
     try {
       var urlParams = new URLSearchParams(window.location.search);
       var urlPwd = urlParams.get('pwd');
@@ -526,7 +664,7 @@
     vs.style.display = 'flex'; vs.style.flexDirection = 'column';
 
     document.getElementById('cpd').classList.add('on');
-    document.getElementById('conn-lbl').textContent = 'Подключено';
+    document.getElementById('conn-lbl').textContent = t('conn_connected');
     document.getElementById('vt-url').textContent = window.location.host;
 
     es = new EventSource('/feed?t=' + token);
@@ -540,7 +678,7 @@
 
     es.onerror = function() {
       document.getElementById('cpd').className = 'cpd';
-      document.getElementById('conn-lbl').textContent = 'Соединение потеряно';
+      document.getElementById('conn-lbl').textContent = t('conn_lost');
       document.getElementById('reconnect-overlay').classList.add('show');
     };
 
@@ -569,7 +707,7 @@
   // ── Handle incoming frame ──────────────────────────────────────────────────
   function handleFrame(data) {
     var cid   = data.camId;
-    var label = data.label || 'Камера';
+    var label = data.label || t('ctile_default');
     var url   = data.dataUrl;
 
     if (!cameras[cid]) {
@@ -605,7 +743,7 @@
     fsBtn.style.fontSize = '14px';
     fsBtn.style.marginLeft = '8px';
     fsBtn.style.padding = '2px 6px';
-    fsBtn.title = 'На весь экран';
+    fsBtn.title = t('ctile_fs');
     fsBtn.onclick = function() {
       wrap.classList.toggle('fs-mode');
       var isFs = wrap.classList.contains('fs-mode');
@@ -631,7 +769,7 @@
     live.innerHTML = '<div class="live-dot"></div>LIVE';
     var img  = document.createElement('img');  img.className  = 'ctile-img';
     var wait = document.createElement('div'); wait.className = 'ctile-wait';
-    wait.innerHTML = '<div class="mini-spin"></div><span style="color:var(--t2);font-size:11px">Ожидание кадра...</span>';
+    wait.innerHTML = '<div class="mini-spin"></div><span style="color:var(--t2);font-size:11px">' + t('ctile_wait') + '</span>';
     
     var closeBtn = document.createElement('div');
     closeBtn.className = 'fs-close-btn';
@@ -660,7 +798,7 @@
     var modal = document.getElementById('qr-scanner-modal');
     var status = document.getElementById('qr-scan-status');
     modal.style.display = 'flex';
-    status.textContent = 'Подключение к камере...';
+    status.textContent = t('qr_scan_status_connecting');
     status.style.color = 'var(--t3)';
 
     try {
@@ -674,11 +812,11 @@
       video.srcObject = qrStream;
       video.setAttribute('playsinline', 'true');
       await video.play();
-      status.textContent = 'Наведите камеру на QR-код';
+      status.textContent = t('qr_scan_status_aim');
       qrAnimId = requestAnimationFrame(scanQrLoop);
     } catch (err) {
       console.error('Camera access error:', err);
-      status.textContent = 'Ошибка доступа к камере: ' + (err.name === 'NotAllowedError' ? 'Доступ запрещён' : (err.message || err.name));
+      status.textContent = t('qr_scan_status_err') + (err.name === 'NotAllowedError' ? (currentLang === 'en' ? 'Access denied' : 'Доступ запрещён') : (err.message || err.name));
       status.style.color = 'var(--red)';
     }
   }
@@ -714,7 +852,7 @@
           inversionAttempts: 'dontInvert'
         });
         if (code && code.data) {
-          status.textContent = 'QR-код распознан!';
+          status.textContent = t('qr_scan_status_found');
           status.style.color = 'var(--green)';
           handleScannedQr(code.data);
           return;
