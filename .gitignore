@@ -1,0 +1,34 @@
+# Dependencies (устанавливаются через npm install)
+node_modules/
+package-lock.json.bak
+
+# Сборка и бинарники (создаются через npm run build)
+dist/
+build/
+out/
+release/
+*.blockmap
+*.exe
+*.zip
+*.tar.gz
+
+# Пользовательские конфиги и сгенерированные SSL ключи
+config.json
+cert.pem
+key.pem
+*.crt
+*.key
+*.log
+
+# Файлы операционных систем и редакторов
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*.bak
+
+# Временные файлы
+tmp/
+temp/

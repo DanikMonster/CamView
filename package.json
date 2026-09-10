@@ -1,0 +1,68 @@
+{
+  "name": "camview",
+  "version": "1.0.0",
+  "description": "Многокамерный просмотр, запись видео и защищенный удаленный доступ через Web / QR-код",
+  "author": "CamView",
+  "license": "MIT",
+  "keywords": [
+    "webcam",
+    "cctv",
+    "surveillance",
+    "multicam",
+    "video-recorder",
+    "remote-monitoring",
+    "qr-code",
+    "electron"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DanikMonster/CamView.git"
+  },
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --x64",
+    "build:dir": "electron-builder --win --x64 --dir",
+    "icon": "powershell -ExecutionPolicy Bypass -File scripts/make_icon.ps1"
+  },
+  "build": {
+    "appId": "com.camview.app",
+    "productName": "CamView",
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "icon.ico",
+      "signingHashAlgorithms": null,
+      "sign": null
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "CamView",
+      "deleteAppDataOnUninstall": false
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "remote.html",
+      "jsqr.js",
+      "icon.ico",
+      "icon.png"
+    ]
+  },
+  "dependencies": {
+    "jsqr": "^1.4.0",
+    "qrcode": "^1.5.4",
+    "selfsigned": "^2.4.1"
+  },
+  "devDependencies": {
+    "@electron/asar": "^4.2.0",
+    "electron": "^31.7.7",
+    "electron-builder": "^24.0.0"
+  }
+}

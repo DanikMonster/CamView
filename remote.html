@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CamView Remote</title>
+  <link rel="icon" type="image/png" href="/icon.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="/jsqr.js"></script>
+  <style>
+    :root {
+      --bg: #08090d; --bg2: #10121a; --bg3: #181b26; --bg4: #1f2235;
+      --border: rgba(255,255,255,0.07); --bh: rgba(139,92,246,0.5);
+      --p: #8b5cf6; --p2: #06b6d4; --pg: rgba(139,92,246,0.25);
+      --green: #4ade80; --red: #f87171; --yellow: #fbbf24;
+      --text: #e2e8f0; --t2: #94a3b8; --t3: #475569;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; }
+
+    body::before { content:''; position:fixed; top:-200px; left:-200px; width:600px; height:600px;
+      background:radial-gradient(circle,rgba(139,92,246,.12) 0%,transparent 65%); pointer-events:none; z-index:0; }
+    body::after  { content:''; position:fixed; bottom:-200px; right:-200px; width:600px; height:600px;
+      background:radial-gradient(circle,rgba(6,182,212,.08) 0%,transparent 65%); pointer-events:none; z-index:0; }
+
+    /* SVG Icons */
+    .svg-ic {
+      width: 16px;
+      height: 16px;
+      display: inline-block;
+      vertical-align: middle;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+    .svg-ic-lg { width: 22px; height: 22px; }
+    .svg-ic-xl { width: 44px; height: 44px; }
+
+    /* ── Header ── */
+    header { position:sticky; top:0; z-index:50; background:rgba(8,9,13,.9); backdrop-filter:blur(20px);
+      border-bottom:1px solid var(--border); padding:0 24px; height:56px;
+      display:flex; align-items:center; gap:12px; }
+    .logo { display:flex; align-items:center; gap:8px; font-size:16px; font-weight:700;
+      background:linear-gradient(135deg,var(--p),var(--p2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .logo-box { width:28px; height:28px; border-radius:8px; flex-shrink:0;
+      background:linear-gradient(135deg,var(--p),var(--p2)); display:flex; align-items:center; justify-content:center; color:#fff; }
+    .hgap { flex:1; }
+    .conn-pill { display:flex; align-items:center; gap:6px; padding:4px 12px; border-radius:99px;
+      background:rgba(255,255,255,.03); border:1px solid var(--border); font-size:11px; color:var(--t2); }
+    .cpd { width:6px; height:6px; border-radius:50%; background:var(--t3); transition:background .3s; }
+    .cpd.on { background:var(--green); box-shadow:0 0 6px var(--green); }
+
+    /* ── Login screen ── */
+    #login-screen { position:relative; z-index:1; min-height:calc(100vh - 56px);
+      display:flex; align-items:center; justify-content:center; padding:24px; }
+    .login-box { background:var(--bg2); border:1px solid var(--border); border-radius:20px;
+      padding:40px 36px; width:100%; max-width:400px; display:flex; flex-direction:column; gap:20px;
+      box-shadow:0 24px 64px rgba(0,0,0,.5); animation:fin .4s ease; }
+    @keyframes fin { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+    .login-icon { display:flex; align-items:center; justify-content:center; color:var(--p); margin-bottom:4px; }
+    .login-title { font-size:22px; font-weight:700; text-align:center;
+      background:linear-gradient(135deg,var(--text),var(--t2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .login-sub { font-size:13px; color:var(--t3); text-align:center; line-height:1.5; }
+    .input-wrap { position:relative; }
+    .pwd-input { width:100%; background:var(--bg3); border:1px solid var(--border);
+      border-radius:10px; color:var(--text); padding:12px 44px 12px 14px;
+      font-size:15px; font-family:'JetBrains Mono',monospace; outline:none; transition:border-color .2s;
+      letter-spacing:.1em; }
+    .pwd-input:focus { border-color:var(--bh); box-shadow:0 0 0 3px rgba(139,92,246,.12); }
+    .eye-btn { position:absolute; right:12px; top:50%; transform:translateY(-50%);
+      background:none; border:none; cursor:pointer; color:var(--t3); font-size:16px; padding:4px; }
+    .eye-btn:hover { color:var(--t2); }
+    .conn-btn { background:linear-gradient(135deg,var(--p),#7c3aed); color:#fff; border:none;
+      border-radius:10px; padding:13px; font-size:15px; font-weight:700;
+      cursor:pointer; font-family:inherit; transition:all .2s;
+      box-shadow:0 4px 16px var(--pg); }
+    .conn-btn:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(139,92,246,.4); }
+    .conn-btn:active { transform:translateY(0); }
+    .login-err { background:rgba(248,113,113,.1); border:1px solid rgba(248,113,113,.25);
+      border-radius:8px; padding:10px 14px; font-size:12px; color:var(--red);
+      display:none; text-align:center; }
+    .login-err.show { display:block; animation:shake .3s ease; }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+
+    /* ── Viewer screen ── */
+    #viewer-screen { display:none; flex-direction:column; min-height:calc(100vh - 56px); position:relative; z-index:1; }
+
+    .viewer-toolbar { padding:10px 20px; border-bottom:1px solid var(--border);
+      background:rgba(16,18,26,.6); backdrop-filter:blur(12px);
+      display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+    .vt-label { font-size:12px; color:var(--t3); }
+    .vt-val { font-size:12px; font-weight:600; color:var(--t2); font-family:'JetBrains Mono',monospace; }
+
+    /* Camera grid */
+    #cam-grid { flex:1; padding:16px; display:grid; gap:12px; align-content:start;
+      grid-template-columns:repeat(auto-fit, minmax(400px,1fr)); }
+
+    .ctile { background:var(--bg2); border:1px solid var(--border); border-radius:14px;
+      overflow:hidden; animation:fin .35s ease;
+      border-color:rgba(139,92,246,.3); box-shadow:0 0 20px rgba(139,92,246,.06); }
+    .ctile-head { background:var(--bg3); border-bottom:1px solid var(--border);
+      padding:7px 14px; display:flex; align-items:center; gap:8px; }
+    .ctile-dot { width:6px; height:6px; border-radius:50%; background:var(--green);
+      box-shadow:0 0 6px var(--green); animation:blink 2s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .ctile-name { font-size:12px; font-weight:600; color:var(--t2); flex:1; }
+    .ctile-fps { font-size:10px; color:var(--t3); font-family:'JetBrains Mono',monospace; }
+
+    .ctile-img-wrap { position:relative; aspect-ratio:16/9; background:var(--bg); overflow:hidden; }
+    .ctile-img { width:100%; height:100%; object-fit:cover; display:block; }
+    .ctile-img-wrap.fs-mode {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 10000 !important;
+      background: #000 !important;
+      aspect-ratio: auto !important;
+    }
+    .ctile-img-wrap.fs-mode .ctile-img {
+      object-fit: contain !important;
+    }
+    body.fullscreen-active header {
+      display: none !important;
+    }
+    .fs-close-btn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      z-index: 10005;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-size: 16px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.4s ease;
+    }
+    .fs-close-btn:hover {
+      background: rgba(239, 68, 68, 0.85);
+      border-color: rgba(239, 68, 68, 0.2);
+    }
+    body.fullscreen-active.mouse-idle .fs-close-btn {
+      opacity: 0;
+      pointer-events: none;
+    }
+    body.fullscreen-active.mouse-idle {
+      cursor: none;
+    }
+    body.fullscreen-active.mouse-idle .ctile-live {
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+    .ctile-img-wrap.fs-mode .fs-close-btn {
+      display: flex;
+    }
+    .ctile-live { position:absolute; top:8px; left:8px; display:flex; align-items:center; gap:4px;
+      background:rgba(0,0,0,.55); backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,.08);
+      border-radius:99px; padding:2px 9px; font-size:10px; font-weight:700; letter-spacing:1px; color:var(--red);
+      transition: opacity .35s; }
+    .live-dot { width:5px; height:5px; border-radius:50%; background:var(--red); animation:blink 1.1s infinite; }
+
+    /* Waiting state */
+    .ctile-wait { position:absolute; inset:0; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:10px; background:var(--bg); }
+    .ctile-wait.h { display:none; }
+    .mini-spin { width:28px; height:28px; border:3px solid var(--bg3); border-top-color:var(--p);
+      border-radius:50%; animation:spin .7s linear infinite; }
+    @keyframes spin { to{transform:rotate(360deg)} }
+
+    /* No cameras */
+    #no-cams { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:14px; color:var(--t3); font-size:14px; padding:40px; text-align:center; }
+    #no-cams-icon { font-size:56px; opacity:.2; }
+
+    /* Reconnect overlay */
+    #reconnect-overlay { display:none; position:fixed; inset:0; z-index:200;
+      background:rgba(8,9,13,.85); backdrop-filter:blur(10px);
+      flex-direction:column; align-items:center; justify-content:center; gap:16px; }
+    #reconnect-overlay.show { display:flex; }
+    .ro-title { font-size:18px; font-weight:700; color:var(--red); }
+    .ro-sub { font-size:13px; color:var(--t2); }
+    .ro-btn { background:linear-gradient(135deg,var(--p),#7c3aed); color:#fff; border:none;
+      border-radius:10px; padding:12px 28px; font-size:14px; font-weight:700;
+      cursor:pointer; font-family:inherit; }
+
+    /* Mobile responsive optimization */
+    @media (max-width: 768px) {
+      #cam-grid {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        padding: 10px;
+        gap: 10px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      body::before, body::after { display: none; } /* hide heavy radial gradients to improve mobile rendering performance */
+      header {
+        padding: 0 16px;
+        height: 48px;
+        gap: 8px;
+      }
+      .logo {
+        font-size: 14px;
+      }
+      .logo-box {
+        width: 24px;
+        height: 24px;
+        font-size: 12px;
+      }
+      .conn-pill {
+        padding: 3px 10px;
+        font-size: 10px;
+      }
+      
+      .login-box {
+        padding: 24px 20px;
+        border-radius: 16px;
+        gap: 16px;
+      }
+      .login-title {
+        font-size: 18px;
+      }
+      .login-sub {
+        font-size: 12px;
+      }
+      .pwd-input {
+        padding: 10px 38px 10px 12px;
+        font-size: 14px;
+      }
+      .conn-btn {
+        padding: 11px;
+        font-size: 14px;
+      }
+      
+      .viewer-toolbar {
+        padding: 8px 12px;
+        gap: 6px 10px;
+        font-size: 11px;
+      }
+      .vt-label {
+        font-size: 11px;
+      }
+      .vt-val {
+        font-size: 11px;
+      }
+      
+      #cam-grid {
+        grid-template-columns: 1fr;
+        padding: 8px;
+        gap: 8px;
+      }
+      .ctile {
+        border-radius: 10px;
+      }
+      .ctile-head {
+        padding: 6px 12px;
+      }
+      .ctile-name {
+        font-size: 11px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><div class="logo-box"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div>CamView Remote</div>
+  <div class="hgap"></div>
+  <div class="conn-pill"><div class="cpd" id="cpd"></div><span id="conn-lbl">Не подключено</span></div>
+</header>
+
+<!-- Login -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-icon"><svg class="svg-ic svg-ic-xl" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+    <div class="login-title">Удалённый просмотр</div>
+    <p class="login-sub">Введите пароль, установленный в приложении CamView на компьютере с камерами</p>
+    <div class="input-wrap">
+      <input class="pwd-input" id="pwd" type="password" placeholder="Пароль доступа" autocomplete="current-password" />
+      <button class="eye-btn" id="eye" onclick="toggleEye()"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+    </div>
+    <button class="conn-btn" onclick="doLogin()">Подключиться</button>
+    <div style="display:flex;align-items:center;gap:10px;margin:2px 0;">
+      <div style="height:1px;background:var(--border);flex:1;"></div>
+      <span style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;">или</span>
+      <div style="height:1px;background:var(--border);flex:1;"></div>
+    </div>
+    <button type="button" class="conn-btn" onclick="openQrScanner()" style="background:var(--bg3);color:var(--p2);border:1px solid rgba(6,182,212,.3);box-shadow:none;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;padding:11px;">
+      <svg class="svg-ic" viewBox="0 0 24 24"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
+      Сканировать QR-код
+    </button>
+    <p style="font-size:10px;color:var(--t3);text-align:center;margin-top:6px;line-height:1.4;">
+      Подключаясь, вы подтверждаете законность использования и соглашаетесь с 
+      <span style="color:var(--p2);cursor:pointer;text-decoration:underline;" onclick="showPrivacyModal()">Политикой использования</span>
+    </p>
+    <div class="login-err" id="err-msg">Неверный пароль. Попробуйте ещё раз.</div>
+  </div>
+</div>
+
+<!-- QR Scanner Modal for mobile -->
+<div id="qr-scanner-modal" style="display:none;position:fixed;inset:0;z-index:100000;background:rgba(8,9,13,0.92);backdrop-filter:blur(16px);flex-direction:column;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:24px;padding:24px;width:100%;max-width:380px;box-shadow:0 24px 64px rgba(0,0,0,0.7);display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;position:relative;animation:fin 0.25s ease;">
+    <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="color:var(--p2);display:flex;">
+          <svg class="svg-ic" viewBox="0 0 24 24"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
+        </span>
+        <h3 style="font-size:17px;font-weight:700;color:var(--text);margin:0;">Сканирование QR-кода</h3>
+      </div>
+      <button class="btn btn-ghost btn-icon" onclick="closeQrScanner()" style="border-radius:50%;width:32px;height:32px;background:var(--bg3);border:1px solid var(--border);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;">
+        <svg class="svg-ic" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <p style="color:var(--t2);font-size:12px;margin:0;">Наведите камеру на QR-код на экране компьютера:</p>
+    
+    <div style="position:relative;width:100%;aspect-ratio:1/1;max-width:280px;border-radius:16px;overflow:hidden;background:#000;border:2px solid var(--p2);">
+      <video id="qr-video" playsinline muted autoplay style="width:100%;height:100%;object-fit:cover;"></video>
+      <canvas id="qr-canvas" style="display:none;"></canvas>
+      <!-- Aim guide reticle -->
+      <div style="position:absolute;inset:20px;border:2px dashed rgba(255,255,255,0.6);border-radius:12px;pointer-events:none;"></div>
+    </div>
+    
+    <div id="qr-scan-status" style="font-size:12px;color:var(--t3);">Поиск QR-кода...</div>
+    <button class="conn-btn" onclick="closeQrScanner()" style="width:100%;padding:10px;font-size:13px;background:var(--bg3);color:var(--text);border:1px solid var(--border);box-shadow:none;">Отмена</button>
+  </div>
+</div>
+
+<!-- Privacy Policy Modal -->
+<div id="privacy-modal" style="display:none;position:fixed;inset:0;z-index:100000;background:rgba(8,9,13,0.85);backdrop-filter:blur(16px);align-items:center;justify-content:center;padding:24px;">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:32px;width:100%;max-width:500px;box-shadow:0 24px 64px rgba(0,0,0,0.6);display:flex;flex-direction:column;gap:18px;animation:fin 0.25s ease;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <svg class="svg-ic svg-ic-lg" viewBox="0 0 24 24" style="color:var(--p)"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h18"/></svg>
+      <h2 style="font-size:18px;font-weight:700;color:var(--text);margin:0;">Политика использования</h2>
+    </div>
+    
+    <div style="color:var(--t2);font-size:12px;line-height:1.65;display:flex;flex-direction:column;gap:12px;max-height:300px;overflow-y:auto;padding-right:8px;border-bottom:1px solid var(--border);padding-bottom:16px;">
+      <p><strong>1. Безопасность данных:</strong> Поток с камер транслируется в зашифрованном виде напрямую с компьютера-сервера. Разработчики или сторонние службы не имеют доступа к вашему видеопотоку.</p>
+      
+      <p><strong>2. Соблюдение законодательства:</strong> Использование камер для удаленного просмотра должно соответствовать законам о защите частной жизни. Запрещено негласное наблюдение за людьми без их явного согласия.</p>
+      
+      <p><strong>3. Ответственность:</strong> Пользователь несет личную ответственность за несанкционированный доступ, передачу паролей третьим лицам или использование трансляции в противоправных целях.</p>
+    </div>
+    
+    <div style="display:flex;justify-content:flex-end;">
+      <button class="conn-btn" style="padding:8px 20px;font-size:13px;width:auto;" onclick="hidePrivacyModal()">Принять</button>
+    </div>
+  </div>
+</div>
+
+<!-- Viewer -->
+<div id="viewer-screen">
+  <div class="viewer-toolbar">
+    <span class="vt-label">Подключение:</span>
+    <span class="vt-val" id="vt-url">—</span>
+    <span class="vt-label" style="margin-left:16px">Зрителей на сервере:</span>
+    <span class="vt-val" id="vt-viewers">—</span>
+    <span class="vt-label" style="margin-left:16px">Камер:</span>
+    <span class="vt-val" id="vt-cams">0</span>
+    <div style="flex:1"></div>
+    <span class="vt-label" id="vt-fps" style="font-family:'JetBrains Mono',monospace"></span>
+  </div>
+  <div id="cam-grid"></div>
+  <div id="no-cams" style="display:none">
+    <div id="no-cams-icon"><svg class="svg-ic svg-ic-xl" viewBox="0 0 24 24"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/></svg></div>
+    <span>Ожидаем трансляцию с камер...</span>
+    <span style="font-size:12px;color:var(--t3)">Убедитесь, что камеры активны в CamView</span>
+  </div>
+</div>
+
+<!-- Reconnect overlay -->
+<div id="reconnect-overlay">
+  <div class="ro-title" style="display:flex;align-items:center;gap:8px;"><svg class="svg-ic svg-ic-lg" viewBox="0 0 24 24" style="color:var(--red)"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Соединение потеряно</div>
+  <div class="ro-sub">Сервер недоступен или завершил работу</div>
+  <button class="ro-btn" onclick="location.reload()">Переподключиться</button>
+</div>
+
+<script>
+  var ICONS = {
+    eye: '<svg class="svg-ic" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
+    eyeOff: '<svg class="svg-ic" viewBox="0 0 24 24"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>',
+    maximize: '<svg class="svg-ic" viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><polyline points="21 14 21 21 14 21"/><polyline points="3 10 3 3 10 3"/></svg>',
+    x: '<svg class="svg-ic" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
+  };
+
+  var token = null;
+  var es = null;
+  var cameras = {};          // camId -> { img, fpsEl, lastTime, frames }
+  var fpsTracker = {};       // camId -> { frames, lastTime }
+  var globalFrames = 0;
+  var globalFpsTimer = null;
+
+  // ── Login ──────────────────────────────────────────────────────────────────
+  async function doLogin() {
+    var pwd = document.getElementById('pwd').value.trim();
+    if (!pwd) return;
+    var err = document.getElementById('err-msg');
+    err.classList.remove('show');
+    
+    var btn = document.querySelector('.conn-btn');
+    var originalText = btn.textContent;
+    btn.textContent = 'Вход...';
+    btn.disabled = true;
+
+    try {
+      var r = await fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pwd }),
+      });
+      var data = await r.json();
+      if (data.ok) {
+        token = data.token;
+        localStorage.setItem('camview_remote_pwd', pwd);
+        startViewer();
+      } else {
+        err.textContent = 'Неверный пароль. Попробуйте ещё раз.';
+        err.classList.add('show');
+        localStorage.removeItem('camview_remote_pwd');
+        document.getElementById('pwd').value = '';
+        document.getElementById('pwd').focus();
+      }
+    } catch(e) {
+      err.textContent = 'Ошибка подключения к серверу';
+      err.classList.add('show');
+    } finally {
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }
+  }
+
+  function toggleEye() {
+    var inp = document.getElementById('pwd');
+    var btn = document.getElementById('eye');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    btn.innerHTML = inp.type === 'password' ? ICONS.eye : ICONS.eyeOff;
+  }
+
+  document.getElementById('pwd').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  // Auto-login if password is provided in URL (?pwd=...) or saved in localStorage
+  window.addEventListener('DOMContentLoaded', function() {
+    try {
+      var urlParams = new URLSearchParams(window.location.search);
+      var urlPwd = urlParams.get('pwd');
+      if (urlPwd) {
+        document.getElementById('pwd').value = urlPwd;
+        localStorage.setItem('camview_remote_pwd', urlPwd);
+        // Clean URL to prevent password lingering in address bar
+        try { window.history.replaceState({}, document.title, window.location.pathname); } catch (e) {}
+        doLogin();
+        return;
+      }
+    } catch (e) {}
+
+    var savedPwd = localStorage.getItem('camview_remote_pwd');
+    if (savedPwd) {
+      document.getElementById('pwd').value = savedPwd;
+      doLogin();
+    }
+  });
+
+  var mouseIdleTimer = null;
+  document.addEventListener('mousemove', function() {
+    if (document.body.classList.contains('fullscreen-active')) {
+      document.body.classList.remove('mouse-idle');
+      clearTimeout(mouseIdleTimer);
+      mouseIdleTimer = setTimeout(function() {
+        if (document.body.classList.contains('fullscreen-active')) {
+          document.body.classList.add('mouse-idle');
+        }
+      }, 3000);
+    }
+  });
+
+  // Handle ESC key to exit fullscreen or close QR scanner
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      var activeFs = document.querySelector('.ctile-img-wrap.fs-mode');
+      if (activeFs) {
+        activeFs.classList.remove('fs-mode');
+        document.body.classList.remove('fullscreen-active');
+        document.body.classList.remove('mouse-idle');
+        clearTimeout(mouseIdleTimer);
+      }
+      closeQrScanner();
+    }
+  });
+
+  // ── Viewer ─────────────────────────────────────────────────────────────────
+  function startViewer() {
+    document.getElementById('login-screen').style.display = 'none';
+    var vs = document.getElementById('viewer-screen');
+    vs.style.display = 'flex'; vs.style.flexDirection = 'column';
+
+    document.getElementById('cpd').classList.add('on');
+    document.getElementById('conn-lbl').textContent = 'Подключено';
+    document.getElementById('vt-url').textContent = window.location.host;
+
+    es = new EventSource('/feed?t=' + token);
+
+    es.onmessage = function(e) {
+      try {
+        var data = JSON.parse(e.data);
+        if (data.type === 'frame') handleFrame(data);
+      } catch {}
+    };
+
+    es.onerror = function() {
+      document.getElementById('cpd').className = 'cpd';
+      document.getElementById('conn-lbl').textContent = 'Соединение потеряно';
+      document.getElementById('reconnect-overlay').classList.add('show');
+    };
+
+    // Global FPS display
+    globalFpsTimer = setInterval(function() {
+      var n = Object.keys(cameras).length;
+      document.getElementById('vt-cams').textContent = n;
+      if (n === 0) {
+        document.getElementById('no-cams').style.display = 'flex';
+        document.getElementById('cam-grid').style.display = 'none';
+      } else {
+        document.getElementById('no-cams').style.display = 'none';
+        document.getElementById('cam-grid').style.display = 'grid';
+        // Update per-camera FPS
+        Object.keys(fpsTracker).forEach(function(cid) {
+          var tr = fpsTracker[cid];
+          var now = Date.now();
+          var fps = Math.round(tr.frames / ((now - tr.lastTime) / 1000));
+          tr.frames = 0; tr.lastTime = now;
+          if (cameras[cid]) cameras[cid].fpsEl.textContent = fps + ' fps';
+        });
+      }
+    }, 1000);
+  }
+
+  // ── Handle incoming frame ──────────────────────────────────────────────────
+  function handleFrame(data) {
+    var cid   = data.camId;
+    var label = data.label || 'Камера';
+    var url   = data.dataUrl;
+
+    if (!cameras[cid]) {
+      createCamTile(cid, label);
+    }
+
+    // Update image
+    cameras[cid].img.src = url;
+    cameras[cid].wait.classList.add('h');
+
+    // FPS tracking
+    if (!fpsTracker[cid]) fpsTracker[cid] = { frames: 0, lastTime: Date.now() };
+    fpsTracker[cid].frames++;
+  }
+
+  // ── Create camera tile ────────────────────────────────────────────────────
+  function createCamTile(cid, label) {
+    var grid = document.getElementById('cam-grid');
+    var tile = document.createElement('div');
+    tile.className = 'ctile'; tile.id = 'rt-' + cid;
+
+    var head = document.createElement('div'); head.className = 'ctile-head';
+    var dot  = document.createElement('div'); dot.className  = 'ctile-dot';
+    var name = document.createElement('div'); name.className = 'ctile-name'; name.textContent = label;
+    var fps  = document.createElement('div'); fps.className  = 'ctile-fps';
+    
+    var fsBtn = document.createElement('button');
+    fsBtn.innerHTML = ICONS.maximize;
+    fsBtn.style.background = 'none';
+    fsBtn.style.border = 'none';
+    fsBtn.style.cursor = 'pointer';
+    fsBtn.style.color = 'var(--t2)';
+    fsBtn.style.fontSize = '14px';
+    fsBtn.style.marginLeft = '8px';
+    fsBtn.style.padding = '2px 6px';
+    fsBtn.title = 'На весь экран';
+    fsBtn.onclick = function() {
+      wrap.classList.toggle('fs-mode');
+      var isFs = wrap.classList.contains('fs-mode');
+      document.body.classList.toggle('fullscreen-active', isFs);
+      if (isFs) {
+        document.body.classList.remove('mouse-idle');
+        clearTimeout(mouseIdleTimer);
+        mouseIdleTimer = setTimeout(function() {
+          if (document.body.classList.contains('fullscreen-active')) {
+            document.body.classList.add('mouse-idle');
+          }
+        }, 3000);
+      } else {
+        document.body.classList.remove('mouse-idle');
+        clearTimeout(mouseIdleTimer);
+      }
+    };
+
+    head.appendChild(dot); head.appendChild(name); head.appendChild(fps); head.appendChild(fsBtn);
+
+    var wrap = document.createElement('div'); wrap.className = 'ctile-img-wrap';
+    var live = document.createElement('div'); live.className = 'ctile-live';
+    live.innerHTML = '<div class="live-dot"></div>LIVE';
+    var img  = document.createElement('img');  img.className  = 'ctile-img';
+    var wait = document.createElement('div'); wait.className = 'ctile-wait';
+    wait.innerHTML = '<div class="mini-spin"></div><span style="color:var(--t2);font-size:11px">Ожидание кадра...</span>';
+    
+    var closeBtn = document.createElement('div');
+    closeBtn.className = 'fs-close-btn';
+    closeBtn.innerHTML = ICONS.x;
+    closeBtn.onclick = function(e) {
+      e.stopPropagation();
+      wrap.classList.remove('fs-mode');
+      document.body.classList.remove('fullscreen-active');
+      document.body.classList.remove('mouse-idle');
+      clearTimeout(mouseIdleTimer);
+    };
+    
+    wrap.appendChild(live); wrap.appendChild(wait); wrap.appendChild(img); wrap.appendChild(closeBtn);
+
+    tile.appendChild(head); tile.appendChild(wrap);
+    grid.appendChild(tile);
+
+    cameras[cid] = { img: img, fpsEl: fps, wait: wait };
+  }
+
+  // ── QR Scanner ────────────────────────────────────────────────────────────
+  var qrStream = null;
+  var qrAnimId = null;
+
+  async function openQrScanner() {
+    var modal = document.getElementById('qr-scanner-modal');
+    var status = document.getElementById('qr-scan-status');
+    modal.style.display = 'flex';
+    status.textContent = 'Подключение к камере...';
+    status.style.color = 'var(--t3)';
+
+    try {
+      var constraints = { video: { facingMode: 'environment' } };
+      try {
+        qrStream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (e1) {
+        qrStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
+      var video = document.getElementById('qr-video');
+      video.srcObject = qrStream;
+      video.setAttribute('playsinline', 'true');
+      await video.play();
+      status.textContent = 'Наведите камеру на QR-код';
+      qrAnimId = requestAnimationFrame(scanQrLoop);
+    } catch (err) {
+      console.error('Camera access error:', err);
+      status.textContent = 'Ошибка доступа к камере: ' + (err.name === 'NotAllowedError' ? 'Доступ запрещён' : (err.message || err.name));
+      status.style.color = 'var(--red)';
+    }
+  }
+
+  function closeQrScanner() {
+    if (qrAnimId) {
+      cancelAnimationFrame(qrAnimId);
+      qrAnimId = null;
+    }
+    if (qrStream) {
+      qrStream.getTracks().forEach(function(track) { track.stop(); });
+      qrStream = null;
+    }
+    var video = document.getElementById('qr-video');
+    if (video) video.srcObject = null;
+    document.getElementById('qr-scanner-modal').style.display = 'none';
+  }
+
+  function scanQrLoop() {
+    var video = document.getElementById('qr-video');
+    var canvas = document.getElementById('qr-canvas');
+    var status = document.getElementById('qr-scan-status');
+
+    if (video && video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      var ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      if (typeof jsQR !== 'undefined') {
+        var code = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: 'dontInvert'
+        });
+        if (code && code.data) {
+          status.textContent = 'QR-код распознан!';
+          status.style.color = 'var(--green)';
+          handleScannedQr(code.data);
+          return;
+        }
+      }
+    }
+    qrAnimId = requestAnimationFrame(scanQrLoop);
+  }
+
+  function handleScannedQr(scannedText) {
+    closeQrScanner();
+    var pwdToUse = '';
+    try {
+      if (scannedText.includes('?')) {
+        var dummyUrl = new URL(scannedText, window.location.origin);
+        var p = dummyUrl.searchParams.get('pwd');
+        if (p) pwdToUse = p;
+      }
+    } catch (e) {}
+
+    if (!pwdToUse) {
+      var match = scannedText.match(/[?&]pwd=([^&#]+)/);
+      if (match) {
+        pwdToUse = decodeURIComponent(match[1]);
+      } else {
+        pwdToUse = scannedText.trim();
+      }
+    }
+
+    if (pwdToUse) {
+      document.getElementById('pwd').value = pwdToUse;
+      doLogin();
+    }
+  }
+
+  function showPrivacyModal() {
+    document.getElementById('privacy-modal').style.display = 'flex';
+  }
+  function hidePrivacyModal() {
+    document.getElementById('privacy-modal').style.display = 'none';
+  }
+</script>
+</body>
+</html>

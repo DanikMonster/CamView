@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CamView — Мультикамерный просмотр</title>
+  <link rel="icon" type="image/png" href="icon.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:#08090d; --bg2:#10121a; --bg3:#181b26; --bg4:#1f2235;
+      --border:rgba(255,255,255,0.06); --bh:rgba(139,92,246,0.45);
+      --p:#8b5cf6; --p2:#06b6d4; --pg:rgba(139,92,246,0.22);
+      --green:#4ade80; --red:#f87171; --yellow:#fbbf24;
+      --text:#e2e8f0; --t2:#94a3b8; --t3:#475569;
+      --glass:rgba(255,255,255,0.025); --r:14px; --rs:9px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;}
+    body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;
+         display:flex;flex-direction:column;min-height:100vh;overflow-x:hidden;}
+    body::before{content:'';position:fixed;top:-300px;left:-300px;width:700px;height:700px;
+      pointer-events:none;z-index:0;background:radial-gradient(circle,rgba(139,92,246,.10) 0%,transparent 65%);}
+    body::after{content:'';position:fixed;bottom:-300px;right:-300px;width:700px;height:700px;
+      pointer-events:none;z-index:0;background:radial-gradient(circle,rgba(6,182,212,.07) 0%,transparent 65%);}
+
+    /* SVG Icons */
+    .svg-ic {
+      width: 16px;
+      height: 16px;
+      display: inline-block;
+      vertical-align: middle;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+    .svg-ic-lg { width: 22px; height: 22px; }
+    .svg-ic-xl { width: 44px; height: 44px; }
+
+    /* Header */
+    header{position:sticky;top:0;z-index:200;background:rgba(8,9,13,.88);
+      backdrop-filter:blur(24px);border-bottom:1px solid var(--border);
+      padding:0 24px;display:flex;align-items:center;gap:14px;height:60px;flex-shrink:0;}
+    .logo{display:flex;align-items:center;gap:9px;font-size:18px;font-weight:700;
+      background:linear-gradient(135deg,var(--p),var(--p2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+    .logo-box{width:32px;height:32px;border-radius:9px;flex-shrink:0;
+      background:linear-gradient(135deg,var(--p),var(--p2));display:flex;align-items:center;justify-content:center;color:#fff;}
+    .hgap{flex:1;}
+    .pill{display:flex;align-items:center;gap:7px;padding:5px 13px;border-radius:99px;
+      background:var(--glass);border:1px solid var(--border);font-size:12px;color:var(--t2);}
+    .dot{width:7px;height:7px;border-radius:50%;background:var(--t3);transition:background .3s;flex-shrink:0;}
+    .dot.on{background:var(--green);box-shadow:0 0 7px var(--green);}
+
+    /* Permission screen */
+    #perm-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+      gap:22px;text-align:center;padding:24px;position:relative;z-index:1;}
+    .hero-icon{width:90px;height:90px;border-radius:26px;
+      background:linear-gradient(135deg,var(--p),var(--p2));display:flex;align-items:center;justify-content:center;color:#fff;
+      animation:pglow 3s ease-in-out infinite;}
+    @keyframes pglow{0%,100%{box-shadow:0 0 40px var(--pg)}50%{box-shadow:0 0 80px rgba(139,92,246,.38)}}
+    .hero-title{font-size:32px;font-weight:700;
+      background:linear-gradient(135deg,var(--text),var(--t2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+    .hero-sub{font-size:15px;color:var(--t2);max-width:460px;line-height:1.65;}
+
+    /* Buttons */
+    .btn{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border-radius:var(--rs);
+      font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .18s;font-family:inherit;white-space:nowrap;}
+    .btn-primary{background:linear-gradient(135deg,var(--p),#7c3aed);color:#fff;box-shadow:0 4px 20px var(--pg);}
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(139,92,246,.38);}
+    .btn-ghost{background:var(--glass);color:var(--t2);border:1px solid var(--border);}
+    .btn-ghost:hover{border-color:var(--bh);color:var(--text);background:rgba(139,92,246,.07);}
+    .btn-ghost.active{border-color:var(--p);color:var(--p);background:rgba(139,92,246,.1);}
+    .btn-danger{background:rgba(248,113,113,.13);color:var(--red);border:1px solid rgba(248,113,113,.28);}
+    .btn-danger:hover{background:rgba(248,113,113,.22);}
+    .btn-sm{padding:6px 12px;font-size:12px;}
+    .btn-icon{width:34px;height:34px;padding:0;display:flex;align-items:center;justify-content:center;font-size:14px;border-radius:8px;}
+
+    /* App screen */
+    #app-screen{display:none;flex-direction:column;flex:1;position:relative;z-index:1;}
+
+    /* Toolbar */
+    .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 20px;
+      border-bottom:1px solid var(--border);background:rgba(16,18,26,.6);backdrop-filter:blur(12px);}
+    .tlbl{font-size:12px;color:var(--t3);font-weight:500;}
+    .lbtns{display:flex;gap:4px;}
+    .lbtn{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+      cursor:pointer;border:1px solid var(--border);background:var(--glass);color:var(--t3);font-size:13px;transition:all .15s;}
+    .lbtn:hover{border-color:var(--bh);color:var(--text);}
+    .lbtn.active{border-color:var(--p);color:var(--p);background:rgba(139,92,246,.1);}
+    .sep{width:1px;height:28px;background:var(--border);margin:0 4px;flex-shrink:0;}
+    .tgap{flex:1;}
+
+    /* ── Remote Access Panel ── */
+    #remote-panel{
+      border-bottom:1px solid var(--border);
+      background:rgba(16,18,26,.8);backdrop-filter:blur(16px);
+      overflow:hidden;max-height:0;transition:max-height .35s ease,padding .35s ease;
+      padding:0 20px;
+    }
+    #remote-panel.open{max-height:400px;padding:14px 20px;}
+    .rp-inner{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+    .rp-section{display:flex;flex-direction:column;gap:4px;}
+    .rp-label{font-size:10px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+    .rp-value{font-size:13px;color:var(--text);font-family:'JetBrains Mono',monospace;font-weight:500;}
+    .rp-url{color:var(--p2);cursor:pointer;text-decoration:underline;text-decoration-style:dotted;}
+    .rp-url:hover{color:var(--p);}
+
+    /* Password display */
+    .pwd-display{display:flex;align-items:center;gap:8px;}
+    .pwd-box{background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+      padding:6px 12px;font-size:14px;font-family:'JetBrains Mono',monospace;
+      color:var(--text);letter-spacing:.12em;min-width:130px;text-align:center;}
+    .rp-sep{width:1px;height:40px;background:var(--border);flex-shrink:0;}
+
+    /* Viewer badge */
+    .viewer-badge{display:flex;align-items:center;gap:6px;
+      background:var(--bg3);border:1px solid var(--border);border-radius:99px;
+      padding:4px 12px;font-size:12px;color:var(--t2);}
+    .viewer-badge.has-viewers{border-color:rgba(74,222,128,.3);background:rgba(74,222,128,.06);}
+    .vb-dot{width:7px;height:7px;border-radius:50%;background:var(--t3);}
+    .viewer-badge.has-viewers .vb-dot{background:var(--green);box-shadow:0 0 5px var(--green);animation:pulse .8s ease-in-out infinite;}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+    /* Grid */
+    .grid-area{flex:1;overflow-y:auto;padding:16px;display:grid;gap:12px;align-content:start;}
+    .grid-area.la{grid-template-columns:repeat(auto-fit,minmax(420px,1fr));}
+    .grid-area.l1{grid-template-columns:1fr;}
+    .grid-area.l2{grid-template-columns:1fr 1fr;}
+    .grid-area.l3{grid-template-columns:1fr 1fr 1fr;}
+    .grid-area.l4{grid-template-columns:1fr 1fr;}
+
+    /* Camera tile */
+    .cam-tile{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);
+      overflow:hidden;display:flex;flex-direction:column;transition:border-color .25s,box-shadow .25s;animation:tin .3s ease;}
+    @keyframes tin{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+    .cam-tile.streaming{border-color:rgba(139,92,246,.35);box-shadow:0 0 20px rgba(139,92,246,.08);}
+    .tile-head{display:flex;align-items:center;gap:8px;padding:8px 12px;
+      background:var(--bg3);border-bottom:1px solid var(--border);min-height:42px;}
+    .tcdot{width:7px;height:7px;border-radius:50%;background:var(--t3);flex-shrink:0;transition:background .3s;}
+    .tcdot.on{background:var(--green);box-shadow:0 0 6px var(--green);}
+    .tcdot.err{background:var(--red);}
+    .tcsel{flex:1;max-width:260px;background:var(--bg4);border:1px solid var(--border);border-radius:6px;
+      color:var(--text);padding:4px 8px;font-size:12px;font-family:inherit;outline:none;cursor:pointer;transition:border-color .15s;}
+    .tcsel:hover{border-color:var(--bh);}
+    .tcsel option{background:var(--bg3);}
+    .tacts{display:flex;gap:4px;flex-shrink:0;}
+    .tile-vw{position:relative;background:var(--bg);aspect-ratio:16/9;overflow:hidden;container-type:inline-size;}
+    .tile-vw::before{content:'';position:absolute;inset:0;z-index:2;pointer-events:none;
+      background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.035) 2px,rgba(0,0,0,.035) 4px);}
+    .tile-vid{width:100%;height:100%;object-fit:cover;display:block;}
+    .tile-vw.fs-mode {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 10000 !important;
+      background: #000 !important;
+      aspect-ratio: auto !important;
+    }
+    .tile-vw.fs-mode .tile-vid {
+      object-fit: contain !important;
+    }
+    body.fullscreen-active header {
+      display: none !important;
+    }
+    .fs-close-btn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      z-index: 10005;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-size: 16px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      pointer-events: auto;
+      transition: background 0.2s, opacity 0.4s ease;
+    }
+    .fs-close-btn:hover {
+      background: rgba(239, 68, 68, 0.85);
+      border-color: rgba(239, 68, 68, 0.2);
+    }
+    body.fullscreen-active.mouse-idle .fs-close-btn {
+      opacity: 0;
+      pointer-events: none;
+    }
+    body.fullscreen-active.mouse-idle {
+      cursor: none;
+    }
+    body.fullscreen-active.mouse-idle .t-ov {
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+    body.fullscreen-active.mouse-idle .tlive,
+    body.fullscreen-active.mouse-idle .tinfo,
+    body.fullscreen-active.mouse-idle .tc {
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+    .tile-vw.fs-mode .fs-close-btn {
+      display: flex;
+    }
+    @keyframes rec-blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .recording-blink {
+      animation: rec-blink 1s infinite;
+    }
+    .tc{position:absolute;width:16px;height:16px;z-index:3;transition:opacity .35s;}
+    .tc::before,.tc::after{content:'';position:absolute;background:var(--p);border-radius:2px;}
+    .tc.tl{top:8px;left:8px;}.tc.tl::before{top:0;left:0;width:16px;height:2px}.tc.tl::after{top:0;left:0;width:2px;height:16px}
+    .tc.tr{top:8px;right:8px;}.tc.tr::before{top:0;right:0;width:16px;height:2px}.tc.tr::after{top:0;right:0;width:2px;height:16px}
+    .tc.bl{bottom:8px;left:8px;}.tc.bl::before{bottom:0;left:0;width:16px;height:2px}.tc.bl::after{bottom:0;left:0;width:2px;height:16px}
+    .tc.br{bottom:8px;right:8px;}.tc.br::before{bottom:0;right:0;width:16px;height:2px}.tc.br::after{bottom:0;right:0;width:2px;height:16px}
+    .tlive{position:absolute;top:10px;left:10px;z-index:5;display:flex;align-items:center;gap:5px;
+      background:rgba(0,0,0,.55);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.08);border-radius:99px;
+      padding:3px 10px;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--red);opacity:0;transition:opacity .35s;}
+    .tlive.on{opacity:1;}
+    .tlive .ldot{width:5px;height:5px;border-radius:50%;background:var(--red);animation:blink 1.2s infinite;}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+    .tinfo{position:absolute;top:10px;right:10px;z-index:5;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);
+      border:1px solid rgba(255,255,255,.07);border-radius:7px;padding:3px 9px;
+      font-size:10px;color:var(--t2);font-family:'JetBrains Mono',monospace;opacity:0;transition:opacity .35s;}
+    .tinfo.on{opacity:1;}
+    .t-ov{position:absolute;bottom:0;left:0;right:0;z-index:5;
+      background:linear-gradient(to top,rgba(0,0,0,.72) 0%,transparent 100%);
+      padding:16px 14px 12px;display:flex;align-items:center;gap:8px;opacity:0;transition:opacity .25s;}
+    .tile-vw:hover .t-ov{opacity:1;}
+    .tload{position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;gap:12px;background:var(--bg);}
+    .tload.h{display:none;}
+    .spinner{width:36px;height:36px;border:3px solid var(--bg3);border-top-color:var(--p);
+      border-radius:50%;animation:spin .7s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .tnos{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;gap:10px;}
+    .tnos.h{display:none;}
+    .tnos-icon{font-size:40px;opacity:.25;}
+
+    /* Stats bar */
+    .stats-bar{border-top:1px solid var(--border);background:rgba(16,18,26,.7);backdrop-filter:blur(12px);
+      padding:8px 20px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;flex-shrink:0;}
+    .stat{display:flex;align-items:center;gap:6px;}
+    .slbl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;font-weight:600;}
+    .sval{font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--t2);}
+    .sval.g{color:var(--green);}.sval.v{color:var(--p);}
+
+    /* Snap drawer */
+    .snap-drawer{border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0;}
+    .snap-head{display:flex;align-items:center;gap:10px;padding:8px 20px;cursor:pointer;}
+    .snap-title{font-size:12px;font-weight:600;color:var(--t2);flex:1;}
+    .snap-body{display:none;padding:12px 16px;gap:10px;flex-wrap:wrap;}
+    .snap-body.open{display:flex;}
+    .sthumb{width:140px;border-radius:8px;overflow:hidden;border:1px solid var(--border);
+      cursor:pointer;transition:all .18s;animation:tin .25s ease;flex-shrink:0;}
+    .sthumb:hover{border-color:var(--bh);transform:translateY(-3px);box-shadow:0 8px 20px rgba(0,0,0,.4);}
+    .sthumb img{width:100%;display:block;aspect-ratio:16/9;object-fit:cover;}
+    .stmeta{padding:4px 8px;font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace;display:flex;justify-content:space-between;}
+    .stdl{opacity:0;transition:opacity .15s;color:var(--p);cursor:pointer;}
+    .sthumb:hover .stdl{opacity:1;}
+
+    /* Toast */
+    #toasts{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:8px;}
+    .toast{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);
+      padding:10px 16px;font-size:12px;color:var(--text);box-shadow:0 6px 24px rgba(0,0,0,.4);
+      display:flex;align-items:center;gap:8px;animation:tin .25s ease;min-width:200px;}
+    .toast.success{border-left:3px solid var(--green);}
+    .toast.error{border-left:3px solid var(--red);}
+    .toast.info{border-left:3px solid var(--p);}
+    @keyframes tout{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(20px)}}
+    .toast.bye{animation:tout .25s ease forwards;}
+
+    #snap-canvas{display:none;}
+    #frame-canvas{display:none;}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><div class="logo-box"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div>CamView</div>
+  <div class="hgap"></div>
+  <div class="pill"><div class="dot" id="status-dot"></div><span id="status-txt">Нет подключения</span></div>
+</header>
+
+<!-- Welcome screen -->
+<div id="perm-screen">
+  <div class="hero-icon"><svg class="svg-ic svg-ic-xl" viewBox="0 0 24 24"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg></div>
+  <h1 class="hero-title">Мультикамерный просмотр</h1>
+  <p class="hero-sub">Смотрите сразу с нескольких камер. Удалённый просмотр по локальной сети.</p>
+  <button class="btn btn-primary" onclick="initApp()"><svg class="svg-ic" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg> Запустить</button>
+  <p style="font-size:11px;color:var(--t3);margin-top:8px;">Браузер запросит разрешение на использование камер</p>
+  <p style="font-size:11px;color:var(--t3);margin-top:16px;">
+    Нажимая «Запустить», вы принимаете 
+    <span style="color:var(--p2);cursor:pointer;text-decoration:underline;" onclick="showPrivacyModal()">Политику конфиденциальности и использования</span>
+  </p>
+</div>
+
+<!-- Main app -->
+<div id="app-screen">
+
+  <div class="toolbar">
+    <span class="tlbl">Раскладка:</span>
+    <div class="lbtns">
+      <div class="lbtn active" id="lb-la" title="Авто"     onclick="setLayout('la')"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
+      <div class="lbtn"        id="lb-l1" title="1 камера"  onclick="setLayout('l1')"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></svg></div>
+      <div class="lbtn"        id="lb-l2" title="2 камеры"  onclick="setLayout('l2')"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="18" rx="1"/><rect x="13" y="3" width="8" height="18" rx="1"/></svg></div>
+      <div class="lbtn"        id="lb-l3" title="3 камеры"  onclick="setLayout('l3')"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="9.5" y="3" width="5" height="18" rx="1"/><rect x="16" y="3" width="5" height="18" rx="1"/></svg></div>
+      <div class="lbtn"        id="lb-l4" title="4 камеры"  onclick="setLayout('l4')"><svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg></div>
+    </div>
+    <div class="sep"></div>
+    <button class="btn btn-ghost btn-sm" onclick="addCamTile()"><svg class="svg-ic" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Добавить камеру</button>
+    <button class="btn btn-ghost btn-sm" onclick="takeAllSnapshots()"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Снимок всех</button>
+    <div class="tgap"></div>
+    <button class="btn btn-ghost btn-sm" id="remote-toggle-btn" onclick="toggleRemotePanel()" style="gap:6px">
+      <span id="remote-srv-dot" style="width:6px;height:6px;border-radius:50%;background:var(--t3);display:inline-block;transition:background .3s"></span>
+      <svg class="svg-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> Сеть
+    </button>
+    <button class="btn btn-danger btn-sm" onclick="stopAll()"><svg class="svg-ic" viewBox="0 0 24 24" fill="currentColor"><rect width="14" height="14" x="5" y="5" rx="2"/></svg> Остановить все</button>
+  </div>
+
+  <!-- Remote access panel -->
+  <div id="remote-panel">
+    <div class="rp-inner" style="border-bottom: 1px solid var(--border); padding-bottom: 14px; margin-bottom: 14px;">
+
+      <!-- IP Address Select -->
+      <div class="rp-section">
+        <div class="rp-label">IP-адрес</div>
+        <select class="tcsel" id="srv-ip-select" style="min-width: 140px; margin-top: 4px;" onchange="onIpChange()"></select>
+      </div>
+
+      <div class="rp-sep"></div>
+
+      <!-- Protocol Select -->
+      <div class="rp-section">
+        <div class="rp-label">Протокол</div>
+        <select class="tcsel" id="srv-proto-select" style="min-width: 90px; margin-top: 4px;" onchange="onProtoChange()">
+          <option value="http">HTTP</option>
+          <option value="https">HTTPS</option>
+        </select>
+      </div>
+
+      <!-- SSL Cert status -->
+      <div class="rp-sep cert-element" style="display:none"></div>
+      <div class="rp-section cert-element" style="display:none">
+        <div class="rp-label">SSL Сертификат</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+          <span id="cert-status-text" style="font-size:12px;color:var(--t2)">Создан</span>
+          <button class="btn btn-ghost btn-sm" style="padding:4px 8px;font-size:11px" onclick="regenerateCert()">Обновить</button>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:6px" id="cert-download-actions">
+          <button class="btn btn-ghost btn-sm" style="padding:4px 8px;font-size:11px;gap:4px" onclick="downloadFile('cert')" title="Скачать файл сертификата для импорта на устройства"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg> Сертификат</button>
+          <button class="btn btn-ghost btn-sm" style="padding:4px 8px;font-size:11px;gap:4px" onclick="downloadFile('key')" title="Скачать приватный ключ SSL"><svg class="svg-ic" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg> Ключ</button>
+        </div>
+      </div>
+
+      <div class="rp-sep"></div>
+
+      <!-- Password -->
+      <div class="rp-section">
+        <div class="rp-label">Пароль доступа</div>
+        <div class="pwd-display" style="margin-top: 4px;">
+          <div class="pwd-box" id="rp-pwd">—</div>
+          <button class="btn btn-ghost btn-sm" onclick="genPassword()" title="Сгенерировать новый пароль"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg></button>
+        </div>
+      </div>
+
+      <div class="rp-sep"></div>
+
+      <!-- Start/Stop server -->
+      <div class="rp-section">
+        <div class="rp-label">Сервер</div>
+        <div style="display:flex;gap:6px;align-items:center;margin-top:4px">
+          <button class="btn btn-primary btn-sm" id="srv-btn" onclick="toggleServer()"><svg class="svg-ic" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg> Запустить</button>
+          <span class="pill" id="rp-port" style="font-size:11px;font-family:'JetBrains Mono',monospace">порт 8765</span>
+        </div>
+      </div>
+
+      <div class="rp-sep" id="rp-sep-url" style="display:none"></div>
+
+      <!-- URL -->
+      <div class="rp-section" id="rp-url-section" style="display:none">
+        <div class="rp-label">Адрес для подключения</div>
+        <div class="rp-value" style="margin-top: 4px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+          <span class="rp-url" id="rp-url" onclick="copyURL()">—</span>
+          <button class="btn btn-ghost btn-sm" style="font-size:11px;gap:4px" onclick="copyURL()"><svg class="svg-ic" viewBox="0 0 24 24"><rect width="13" height="13" x="9" y="9" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Копировать</button>
+          <button class="btn btn-primary btn-sm" id="btn-show-qr" style="font-size:11px;gap:5px;background:linear-gradient(135deg,var(--p),var(--p2));box-shadow:0 2px 10px var(--pg);" onclick="showQrModal()"><svg class="svg-ic" viewBox="0 0 24 24"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg> QR-код для входа</button>
+        </div>
+      </div>
+
+      <div class="rp-sep" id="rp-sep2" style="display:none"></div>
+
+      <!-- Viewer count -->
+      <div class="rp-section" id="rp-viewers-section" style="display:none">
+        <div class="rp-label">Зрители</div>
+        <div class="viewer-badge" id="viewer-badge" style="margin-top: 4px;">
+          <div class="vb-dot"></div>
+          <span id="viewer-count">0 онлайн</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Streaming configurations -->
+    <div class="rp-inner">
+      <div class="rp-section" style="flex: 1; min-width: 140px;">
+        <div class="rp-label">Частота кадров: <span id="val-fps">15</span> FPS</div>
+        <input type="range" id="cfg-fps" min="5" max="30" step="5" value="15" oninput="updateCfg('fps', this.value)" style="width: 100%; margin-top: 6px; cursor: pointer;" />
+      </div>
+
+      <div class="rp-sep"></div>
+
+      <div class="rp-section" style="flex: 1; min-width: 140px;">
+        <div class="rp-label">Качество: <span id="val-quality">50</span>%</div>
+        <input type="range" id="cfg-quality" min="10" max="95" step="5" value="50" oninput="updateCfg('quality', this.value)" style="width: 100%; margin-top: 6px; cursor: pointer;" />
+      </div>
+
+      <div class="rp-sep"></div>
+
+      <div class="rp-section" style="flex: 1; min-width: 140px;">
+        <div class="rp-label">Разрешение: <span id="val-width">800</span>px</div>
+        <input type="range" id="cfg-width" min="320" max="1280" step="80" value="800" oninput="updateCfg('width', this.value)" style="width: 100%; margin-top: 6px; cursor: pointer;" />
+      </div>
+    </div>
+    
+    <!-- Recordings Folder configuration -->
+    <div class="rp-inner" style="border-top: 1px solid var(--border); padding-top: 14px; margin-top: 14px;" id="record-dir-row">
+      <div class="rp-section" style="flex: 1;">
+        <div class="rp-label">Папка для сохранения видеозаписей</div>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+          <input type="text" id="rec-dir-input" readonly style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px;color:var(--text);outline:none;font-family:'JetBrains Mono',monospace" value="Загрузка..." />
+          <button class="btn btn-ghost btn-sm" onclick="selectRecordDir()">Обзор...</button>
+          <button class="btn btn-ghost btn-sm" onclick="openRecordDir()" title="Открыть папку в Проводнике"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-area la" id="grid"></div>
+
+  <div class="stats-bar">
+    <div class="stat"><span class="slbl">Активных</span><span class="sval g" id="s-active">0</span></div>
+    <div class="stat"><span class="slbl">Камер на ПК</span><span class="sval v" id="s-total">0</span></div>
+    <div class="stat"><span class="slbl">Снимков</span><span class="sval" id="s-snaps">0</span></div>
+    <div class="stat"><span class="slbl">Зрителей</span><span class="sval" id="s-viewers-bar">0</span></div>
+  </div>
+
+  <div class="snap-drawer" id="snap-drawer" style="display:none">
+    <div class="snap-head" onclick="toggleSnapDrawer()">
+      <span class="snap-title"><svg class="svg-ic" viewBox="0 0 24 24" style="margin-right:6px"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>Снимки (<span id="snap-count">0</span>)</span>
+      <span id="snap-arrow" style="color:var(--t3);display:flex;align-items:center"><svg class="svg-ic" viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg></span>
+    </div>
+    <div class="snap-body open" id="snap-body"></div>
+  </div>
+
+</div>
+
+<div id="toasts"></div>
+<canvas id="snap-canvas"></canvas>
+<canvas id="frame-canvas"></canvas>
+
+<!-- Privacy Policy Modal -->
+<div id="privacy-modal" style="display:none;position:fixed;inset:0;z-index:100000;background:rgba(8,9,13,0.85);backdrop-filter:blur(16px);align-items:center;justify-content:center;padding:24px;">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:32px;width:100%;max-width:550px;box-shadow:0 24px 64px rgba(0,0,0,0.6);display:flex;flex-direction:column;gap:18px;animation:tin 0.25s ease;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <svg class="svg-ic svg-ic-lg" viewBox="0 0 24 24" style="color:var(--p)"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h18"/></svg>
+      <h2 style="font-size:20px;font-weight:700;color:var(--text);margin:0;">Политика использования и конфиденциальности</h2>
+    </div>
+    
+    <div style="color:var(--t2);font-size:13px;line-height:1.65;display:flex;flex-direction:column;gap:12px;max-height:350px;overflow-y:auto;padding-right:8px;border-bottom:1px solid var(--border);padding-bottom:16px;">
+      <p><strong>1. Полная конфиденциальность данных:</strong> Все video-потоки с камер, записи и фотографии обрабатываются исключительно локально на вашем компьютере. Никакие данные не передаются разработчикам приложения или третьим лицам.</p>
+      
+      <p><strong>2. Локальное вещание:</strong> Передача потока на другие устройства (телефоны, планшеты) осуществляется напрямую через вашу локальную сеть. Защита соединения по HTTPS обеспечивается самоподписанным SSL-сертификатом.</p>
+      
+      <p><strong>3. Законность использования:</strong> Пользователь несет полную личную ответственность за использование данного программного обеспечения в соответствии с действующим законодательством вашей страны (включая законы о скрытом видеонаблюдении, защите персональных данных и тайне частной жизни).</p>
+      
+      <p><strong>4. Запрет на негласное наблюдение:</strong> Строго запрещается использовать приложение для негласного (скрытого) получения информации, слежки за людьми без их ведома и согласия, а также для нарушения тайны частной жизни.</p>
+      
+      <p><strong>5. Отказ от ответственности:</strong> Разработчик не несет ответственности за любой ущерб, упущенную выгоду или юридические последствия, вызванные неправомерным или неэтичным использованием программы.</p>
+    </div>
+    
+    <div style="display:flex;justify-content:flex-end;">
+      <button class="btn btn-primary" onclick="hidePrivacyModal()">Понятно, согласен</button>
+    </div>
+  </div>
+</div>
+
+<!-- QR Code Modal -->
+<div id="qr-modal" style="display:none;position:fixed;inset:0;z-index:100000;background:rgba(8,9,13,0.85);backdrop-filter:blur(16px);align-items:center;justify-content:center;padding:24px;">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:24px;padding:32px;width:100%;max-width:440px;box-shadow:0 24px 64px rgba(0,0,0,0.6);display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;animation:tin 0.25s ease;">
+    <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="color:var(--p2);display:flex;">
+          <svg class="svg-ic svg-ic-lg" viewBox="0 0 24 24"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
+        </span>
+        <h2 style="font-size:18px;font-weight:700;color:var(--text);margin:0;">QR-код для входа</h2>
+      </div>
+      <button class="btn btn-ghost btn-icon" onclick="hideQrModal()" style="border-radius:50%;width:32px;height:32px;">
+        <svg class="svg-ic" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    
+    <p style="color:var(--t2);font-size:13px;line-height:1.5;margin:0;">
+      Наведите камеру смартфона на QR-код для мгновенного входа без ввода пароля:
+    </p>
+    
+    <div style="background:#ffffff;border-radius:18px;padding:16px;box-shadow:0 8px 32px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;">
+      <img id="qr-code-img" src="" alt="QR Code" style="width:230px;height:230px;display:block;border-radius:6px;" />
+    </div>
+    
+    <div style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:10px 14px;display:flex;flex-direction:column;gap:6px;text-align:left;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:10px;color:var(--t3);text-transform:uppercase;font-weight:700;">Ссылка быстрого входа</span>
+        <span style="font-size:11px;color:var(--green);font-weight:600;">Пароль включён</span>
+      </div>
+      <span id="qr-full-url" style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--p2);word-break:break-all;">—</span>
+    </div>
+    
+    <div style="display:flex;gap:10px;width:100%;">
+      <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;gap:6px;" onclick="copyFullAuthURL()">
+        <svg class="svg-ic" viewBox="0 0 24 24"><rect width="13" height="13" x="9" y="9" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Копировать ссылку
+      </button>
+      <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center;" onclick="hideQrModal()">
+        Готово
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ─── SVG Icons ────────────────────────────────────────────────────────────
+  var ICONS = {
+    camera: '<svg class="svg-ic" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>',
+    video: '<svg class="svg-ic" viewBox="0 0 24 24"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg>',
+    videoHero: '<svg class="svg-ic svg-ic-xl" viewBox="0 0 24 24"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg>',
+    videoOff: '<svg class="svg-ic svg-ic-xl" viewBox="0 0 24 24"><line x1="2" y1="2" x2="22" y2="22"/><path d="M10.66 6H14a2 2 0 0 1 2 2v2.34l1 1L22 8v8"/><path d="M16 16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2l10 10Z"/></svg>',
+    play: '<svg class="svg-ic" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>',
+    stop: '<svg class="svg-ic" viewBox="0 0 24 24" fill="currentColor"><rect width="14" height="14" x="5" y="5" rx="2"/></svg>',
+    recordDot: '<svg class="svg-ic" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="7"/></svg>',
+    recordSquare: '<svg class="svg-ic" viewBox="0 0 24 24" fill="currentColor"><rect width="12" height="12" x="6" y="6" rx="2"/></svg>',
+    plus: '<svg class="svg-ic" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+    globe: '<svg class="svg-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
+    shield: '<svg class="svg-ic" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>',
+    key: '<svg class="svg-ic" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>',
+    refresh: '<svg class="svg-ic" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>',
+    copy: '<svg class="svg-ic" viewBox="0 0 24 24"><rect width="13" height="13" x="9" y="9" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+    qrCode: '<svg class="svg-ic" viewBox="0 0 24 24"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>',
+    folder: '<svg class="svg-ic" viewBox="0 0 24 24"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>',
+    gallery: '<svg class="svg-ic" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
+    chevronUp: '<svg class="svg-ic" viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg>',
+    chevronDown: '<svg class="svg-ic" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>',
+    mirror: '<svg class="svg-ic" viewBox="0 0 24 24"><polyline points="8 3 4 7 8 11"/><polyline points="4 7 20 7"/><polyline points="16 21 20 17 16 13"/><polyline points="20 17 4 17"/></svg>',
+    maximize: '<svg class="svg-ic" viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><polyline points="21 14 21 21 14 21"/><polyline points="3 10 3 3 10 3"/></svg>',
+    x: '<svg class="svg-ic" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+    download: '<svg class="svg-ic" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+    scale: '<svg class="svg-ic svg-ic-lg" viewBox="0 0 24 24"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h18"/></svg>',
+    gridAuto: '<svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
+    grid1: '<svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>',
+    grid2: '<svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="18" rx="1"/><rect x="13" y="3" width="8" height="18" rx="1"/></svg>',
+    grid3: '<svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="9.5" y="3" width="5" height="18" rx="1"/><rect x="16" y="3" width="5" height="18" rx="1"/></svg>',
+    grid4: '<svg class="svg-ic" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>',
+    check: '<svg class="svg-ic" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>'
+  };
+
+  // ─── State ────────────────────────────────────────────────────────────────
+  var allCameras = [], tiles = {}, tileSeq = 0, totalSnaps = 0, snapOpen = true;
+  var serverRunning = false, viewerCount = 0;
+  var serverPassword = null, serverURL = null;
+  var frameInterval = null, remotePanelOpen = false;
+  var frameCanvas = document.getElementById('frame-canvas');
+  var frameCtx   = frameCanvas.getContext('2d');
+  
+  var networkInterfaces = [];
+  var selectedIP = null;
+  var useHttps = false;
+  var fullAuthURL = null;
+
+  function showPrivacyModal() {
+    document.getElementById('privacy-modal').style.display = 'flex';
+  }
+  function hidePrivacyModal() {
+    document.getElementById('privacy-modal').style.display = 'none';
+  }
+
+  async function updateQrCode() {
+    if (!serverURL || !serverPassword || !window.camBridge || !window.camBridge.generateQR) return;
+    fullAuthURL = serverURL + '/?pwd=' + encodeURIComponent(serverPassword);
+    var urlEl = document.getElementById('qr-full-url');
+    if (urlEl) urlEl.textContent = fullAuthURL;
+    try {
+      var dataUrl = await window.camBridge.generateQR(fullAuthURL);
+      var imgEl = document.getElementById('qr-code-img');
+      if (imgEl) imgEl.src = dataUrl;
+    } catch (e) {
+      console.error('QR code generation error:', e);
+    }
+  }
+
+  function showQrModal() {
+    if (!serverRunning) {
+      toast('error', 'Сначала запустите сервер');
+      return;
+    }
+    updateQrCode();
+    document.getElementById('qr-modal').style.display = 'flex';
+  }
+
+  function hideQrModal() {
+    document.getElementById('qr-modal').style.display = 'none';
+  }
+
+  function copyFullAuthURL() {
+    if (!fullAuthURL) return;
+    navigator.clipboard.writeText(fullAuthURL).then(function() {
+      toast('success', ICONS.copy + ' Ссылка с паролем скопирована');
+    });
+  }
+
+  // ─── Init ─────────────────────────────────────────────────────────────────
+  async function initApp() {
+    var isElectron = navigator.userAgent.toLowerCase().includes('electron');
+    if (!isElectron) {
+      try {
+        var tmp = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
+        tmp.getTracks().forEach(function(t){ t.stop(); });
+      } catch(e) { toast('error','Доступ к камере запрещён'); return; }
+    }
+    await refreshCams();
+    document.getElementById('perm-screen').style.display = 'none';
+    var as = document.getElementById('app-screen');
+    as.style.display = 'flex'; as.style.flexDirection = 'column';
+    updateHeader();
+    addCamTile();
+    
+    if (window.camBridge) {
+      var savedCfg = await window.camBridge.getConfig();
+      if (savedCfg && savedCfg.password) {
+        serverPassword = savedCfg.password;
+        document.getElementById('rp-pwd').textContent = serverPassword;
+      } else {
+        genPassword();
+      }
+      if (savedCfg && savedCfg.useHttps !== undefined) {
+        useHttps = savedCfg.useHttps;
+        document.getElementById('srv-proto-select').value = useHttps ? 'https' : 'http';
+        onProtoChange();
+      }
+      if (savedCfg && savedCfg.ipAddress) {
+        selectedIP = savedCfg.ipAddress;
+      }
+      
+      await loadNetworkInterfaces();
+      if (selectedIP) {
+        document.getElementById('srv-ip-select').value = selectedIP;
+      }
+      await updateCertStatus();
+      
+      // Listen for viewer count updates from main process
+      window.camBridge.onViewerCount(function(n) {
+        viewerCount = n;
+        updateViewerUI();
+      });
+    } else {
+      genPassword();
+    }
+  }
+
+  async function refreshCams() {
+    var devs = await navigator.mediaDevices.enumerateDevices();
+    allCameras = devs.filter(function(d){ return d.kind === 'videoinput'; });
+    document.getElementById('s-total').textContent = allCameras.length;
+    Object.keys(tiles).forEach(function(id){ fillSelect(id); });
+  }
+
+  // ─── Remote access panel ──────────────────────────────────────────────────
+  function toggleRemotePanel() {
+    remotePanelOpen = !remotePanelOpen;
+    document.getElementById('remote-panel').classList.toggle('open', remotePanelOpen);
+    document.getElementById('remote-toggle-btn').classList.toggle('active', remotePanelOpen);
+  }
+
+  async function loadNetworkInterfaces() {
+    if (!window.camBridge) return;
+    try {
+      networkInterfaces = await window.camBridge.getInterfaces();
+      var select = document.getElementById('srv-ip-select');
+      select.innerHTML = '';
+      
+      var bestIP = await window.camBridge.getIP();
+      
+      networkInterfaces.forEach(function(iface) {
+        var opt = document.createElement('option');
+        opt.value = iface.address;
+        opt.textContent = iface.name + ' (' + iface.address + ')';
+        select.appendChild(opt);
+      });
+      
+      var targetIP = selectedIP || bestIP;
+      select.value = targetIP;
+      selectedIP = targetIP;
+    } catch(e) {
+      toast('error', 'Не удалось загрузить сетевые интерфейсы');
+    }
+  }
+
+  async function updateCertStatus() {
+    if (!window.camBridge) return;
+    var exists = await window.camBridge.checkCertExists();
+    var textEl = document.getElementById('cert-status-text');
+    if (exists) {
+      textEl.textContent = 'Создан';
+      textEl.style.color = 'var(--green)';
+    } else {
+      textEl.textContent = 'Не создан';
+      textEl.style.color = 'var(--yellow)';
+    }
+  }
+
+  async function regenerateCert() {
+    if (!window.camBridge || !selectedIP) return;
+    try {
+      await window.camBridge.regenerateCert(selectedIP);
+      await updateCertStatus();
+      toast('success', 'SSL сертификат успешно создан/обновлен');
+      if (serverRunning && useHttps) {
+        await restartServer();
+      }
+    } catch(e) {
+      toast('error', 'Ошибка генерации сертификата');
+    }
+  }
+
+  async function downloadFile(type) {
+    if (!window.camBridge) return;
+    try {
+      var exists = await window.camBridge.checkCertExists();
+      if (!exists) {
+        toast('error', 'Сертификат еще не создан. Включите HTTPS или нажмите Обновить.');
+        return;
+      }
+      var saved = await window.camBridge.saveCertFile(type);
+      if (saved) {
+        toast('success', 'Файл успешно сохранен');
+      }
+    } catch(e) {
+      toast('error', e.message);
+    }
+  }
+
+  function onIpChange() {
+    selectedIP = document.getElementById('srv-ip-select').value;
+    if (window.camBridge) {
+      window.camBridge.saveConfig({ ipAddress: selectedIP });
+    }
+    // Note: The certificate has a 10-year lifespan and includes all local network interface IPs.
+    // Changing the IP address preserves the initial certificate, so client mobile devices don't lose trust.
+    if (serverRunning) {
+      restartServer();
+    }
+  }
+
+  function onProtoChange() {
+    var val = document.getElementById('srv-proto-select').value;
+    useHttps = (val === 'https');
+    if (window.camBridge) {
+      window.camBridge.saveConfig({ useHttps: useHttps });
+    }
+    
+    var certEls = document.querySelectorAll('.cert-element');
+    certEls.forEach(function(el) {
+      el.style.display = useHttps ? '' : 'none';
+    });
+    
+    if (useHttps) {
+      updateCertStatus();
+      window.camBridge.checkCertExists().then(function(exists) {
+        if (!exists) {
+          regenerateCert();
+        }
+      });
+    }
+  }
+
+  function genPassword() {
+    var chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    var pwd = '';
+    for (var i = 0; i < 8; i++) pwd += chars[Math.floor(Math.random() * chars.length)];
+    serverPassword = pwd;
+    document.getElementById('rp-pwd').textContent = pwd;
+    if (window.camBridge) {
+      window.camBridge.saveConfig({ password: pwd });
+    }
+    if (serverRunning) {
+      restartServer();
+    }
+  }
+
+  async function toggleServer() {
+    if (serverRunning) {
+      await stopServer();
+    } else {
+      await startServer();
+    }
+  }
+
+  async function startServer() {
+    if (!window.camBridge) { toast('error','Только в Electron-приложении'); return; }
+    if (!serverPassword) genPassword();
+    try {
+      document.getElementById('srv-ip-select').disabled = true;
+      document.getElementById('srv-proto-select').disabled = true;
+      
+      var config = {
+        password: serverPassword,
+        useHttps: useHttps,
+        ipAddress: selectedIP
+      };
+      
+      var result = await window.camBridge.startServer(config);
+      serverRunning = true;
+      
+      var proto = result.useHttps ? 'https' : 'http';
+      serverURL = proto + '://' + result.ip + ':' + result.port;
+
+      document.getElementById('rp-url').textContent = serverURL;
+      document.getElementById('rp-url-section').style.display = '';
+      document.getElementById('rp-sep-url').style.display = '';
+      document.getElementById('rp-sep2').style.display = '';
+      document.getElementById('rp-viewers-section').style.display = '';
+
+      var btn = document.getElementById('srv-btn');
+      btn.innerHTML = ICONS.stop + ' Остановить';
+      btn.className = 'btn btn-danger btn-sm';
+
+      document.getElementById('remote-srv-dot').style.background = 'var(--green)';
+      document.getElementById('remote-srv-dot').style.boxShadow = '0 0 5px var(--green)';
+
+      startFrameCapture();
+      updateQrCode();
+      toast('success', ICONS.globe + ' Сервер запущен: ' + serverURL);
+      
+      if (useHttps) {
+        toast('info', 'Для HTTPS на удаленном устройстве нужно будет подтвердить самоподписанный сертификат');
+      }
+    } catch(e) {
+      toast('error', 'Ошибка запуска сервера');
+      document.getElementById('srv-ip-select').disabled = false;
+      document.getElementById('srv-proto-select').disabled = false;
+    }
+  }
+
+  async function stopServer() {
+    if (!window.camBridge) return;
+    await window.camBridge.stopServer();
+    serverRunning = false;
+    stopFrameCapture();
+    hideQrModal();
+    fullAuthURL = null;
+
+    document.getElementById('rp-url-section').style.display = 'none';
+    document.getElementById('rp-sep-url').style.display = 'none';
+    document.getElementById('rp-sep2').style.display = 'none';
+    document.getElementById('rp-viewers-section').style.display = 'none';
+
+    var btn = document.getElementById('srv-btn');
+    btn.innerHTML = ICONS.play + ' Запустить';
+    btn.className = 'btn btn-primary btn-sm';
+
+    document.getElementById('remote-srv-dot').style.background = 'var(--t3)';
+    document.getElementById('remote-srv-dot').style.boxShadow = 'none';
+
+    document.getElementById('srv-ip-select').disabled = false;
+    document.getElementById('srv-proto-select').disabled = false;
+
+    viewerCount = 0;
+    updateViewerUI();
+    toast('info', ICONS.stop + ' Сервер остановлен');
+  }
+
+  async function restartServer() {
+    if (!serverRunning) return;
+    if (window.camBridge) await window.camBridge.stopServer();
+    await startServer();
+  }
+
+  function copyURL() {
+    if (!serverURL) return;
+    navigator.clipboard.writeText(serverURL).then(function() {
+      toast('success', ICONS.copy + ' Скопировано: ' + serverURL);
+    });
+  }
+
+  function updateViewerUI() {
+    var n = viewerCount;
+    var badge = document.getElementById('viewer-badge');
+    document.getElementById('viewer-count').textContent = n + ' онлайн';
+    document.getElementById('s-viewers-bar').textContent = n;
+    badge.classList.toggle('has-viewers', n > 0);
+  }
+
+  // ─── Frame capture & streaming ────────────────────────────────────────────
+  var FRAME_FPS    = 15;   // 15 fps default
+  var FRAME_WIDTH  = 800;  // 800px default width
+  var FRAME_QUALITY = 0.50; // 50% quality default
+
+  function startFrameCapture() {
+    if (frameInterval) return;
+    frameInterval = setInterval(captureAndSendFrames, 1000 / FRAME_FPS);
+  }
+
+  function stopFrameCapture() {
+    if (frameInterval) { clearInterval(frameInterval); frameInterval = null; }
+  }
+
+  function updateCfg(key, val) {
+    if (key === 'fps') {
+      FRAME_FPS = parseInt(val);
+      document.getElementById('val-fps').textContent = val;
+      if (serverRunning && frameInterval) {
+        stopFrameCapture();
+        startFrameCapture();
+      }
+    } else if (key === 'quality') {
+      FRAME_QUALITY = parseInt(val) / 100;
+      document.getElementById('val-quality').textContent = val;
+    } else if (key === 'width') {
+      FRAME_WIDTH = parseInt(val);
+      document.getElementById('val-width').textContent = val;
+    }
+  }
+
+  async function captureAndSendFrames() {
+    if (!window.camBridge || !serverRunning || viewerCount === 0) return;
+    var activeIds = Object.keys(tiles).filter(function(id){ return tiles[id].stream; });
+    for (var i = 0; i < activeIds.length; i++) {
+      var id = activeIds[i];
+      var tile = tiles[id];
+      if (!tile.stream) continue;
+      var vid = document.getElementById('vid-' + id);
+      if (!vid || !vid.videoWidth) continue;
+      var scale = Math.min(1, FRAME_WIDTH / vid.videoWidth);
+      frameCanvas.width  = Math.round(vid.videoWidth  * scale);
+      frameCanvas.height = Math.round(vid.videoHeight * scale);
+      frameCtx.clearRect(0, 0, frameCanvas.width, frameCanvas.height);
+      // Поскольку OSD и зеркалирование уже наложены на поток, просто рисуем кадр
+      frameCtx.drawImage(vid, 0, 0, frameCanvas.width, frameCanvas.height);
+
+      var dataUrl = frameCanvas.toDataURL('image/jpeg', FRAME_QUALITY);
+      window.camBridge.sendFrame({ camId: id, label: camLabel(tile.deviceId), dataUrl: dataUrl });
+    }
+  }
+
+  // ─── Tile management ──────────────────────────────────────────────────────
+  function addCamTile(deviceId) {
+    var id = 't' + (++tileSeq);
+    tiles[id] = { id:id, stream:null, deviceId:null, mirrored:false, rafId:null, fpsTimer:null, frameCount:0, lastFpsTime:0 };
+    buildTile(id);
+    var used = Object.values(tiles).map(function(t){ return t.deviceId; });
+    var free = allCameras.find(function(c){ return !used.includes(c.deviceId); });
+    var pick = deviceId || (free && free.deviceId) || (allCameras[0] && allCameras[0].deviceId);
+    if (pick) openStream(id, pick);
+    updateStats();
+  }
+
+  function buildTile(id) {
+    var grid = document.getElementById('grid');
+    var div  = document.createElement('div');
+    div.className = 'cam-tile'; div.id = 'ctile-' + id;
+    div.innerHTML = ''
+      + '<div class="tile-head">'
+      +   '<div class="tcdot" id="cd-'+id+'"></div>'
+      +   '<select class="tcsel" id="cs-'+id+'" onchange="onSel(\''+id+'\',this.value)"></select>'
+      +   '<div class="tacts">'
+      +     '<button class="btn btn-primary btn-icon" id="ss-'+id+'" title="Запустить/Стоп" onclick="toggleStream(\''+id+'\')">' + ICONS.play + '</button>'
+      +     '<button class="btn btn-ghost  btn-icon" id="mr-'+id+'" title="Зеркало"         onclick="toggleMirror(\''+id+'\')">' + ICONS.mirror + '</button>'
+      +     '<button class="btn btn-ghost  btn-icon"               title="Снимок"           onclick="doSnap(\''+id+'\')">' + ICONS.camera + '</button>'
+      +     '<button class="btn btn-ghost  btn-icon" id="rec-'+id+'" title="Запись"          onclick="toggleRecord(\''+id+'\')">' + ICONS.recordDot + '</button>'
+      +     '<button class="btn btn-ghost  btn-icon"               title="Полный экран"     onclick="toggleFullscreen(\''+id+'\')">' + ICONS.maximize + '</button>'
+      +     '<button class="btn btn-danger btn-icon"               title="Удалить"          onclick="removeTile(\''+id+'\')">' + ICONS.x + '</button>'
+      +   '</div>'
+      + '</div>'
+      + '<div class="tile-vw" id="vw-'+id+'">'
+      +   '<div class="tc tl"></div><div class="tc tr"></div><div class="tc bl"></div><div class="tc br"></div>'
+      +   '<div class="tlive" id="lv-'+id+'"><div class="ldot"></div>LIVE</div>'
+      +   '<div class="tinfo" id="ti-'+id+'"></div>'
+      +   '<div class="fs-close-btn" onclick="toggleFullscreen(\''+id+'\')">' + ICONS.x + '</div>'
+      +   '<div class="tload h" id="tl-'+id+'"><div class="spinner"></div>'
+      +     '<span style="color:var(--t2);font-size:12px">Подключение...</span></div>'
+      +   '<div class="tnos" id="tn-'+id+'">'
+      +     '<div class="tnos-icon">' + ICONS.videoOff + '</div>'
+      +     '<span style="font-size:13px;color:var(--t3)">Камера остановлена</span>'
+      +     '<button class="btn btn-primary" style="margin-top:14px;padding:10px 24px;font-size:14px" onclick="toggleStream(\''+id+'\')">' + ICONS.play + '&nbsp;Запустить</button>'
+      +   '</div>'
+      +   '<video class="tile-vid" id="vid-'+id+'" autoplay playsinline muted></video>'
+      +   '<div class="t-ov">'
+      +     '<button class="btn btn-ghost btn-sm" onclick="toggleMirror(\''+id+'\')">' + ICONS.mirror + ' Зеркало</button>'
+      +     '<button class="btn btn-ghost btn-sm" onclick="doSnap(\''+id+'\')">' + ICONS.camera + ' Снимок</button>'
+      +     '<button class="btn btn-ghost btn-sm" id="rec-ov-'+id+'" onclick="toggleRecord(\''+id+'\')">' + ICONS.recordDot + ' Запись</button>'
+      +     '<button class="btn btn-ghost btn-sm" onclick="toggleFullscreen(\''+id+'\')">' + ICONS.maximize + ' Во весь экран</button>'
+      +     '<div style="flex:1"></div>'
+      +     '<button class="btn btn-danger btn-sm" onclick="stopStream(\''+id+'\')">' + ICONS.stop + ' Стоп</button>'
+      +   '</div>'
+      + '</div>';
+    grid.appendChild(div);
+    fillSelect(id);
+    showNos(id, true); showLoad(id, false);
+  }
+
+  function fillSelect(id) {
+    var sel = document.getElementById('cs-' + id); if (!sel) return;
+    var cur = tiles[id] && tiles[id].deviceId;
+    sel.innerHTML = '';
+    allCameras.forEach(function(cam, i) {
+      var o = document.createElement('option');
+      o.value = cam.deviceId; o.textContent = cam.label || ('Камера ' + (i+1));
+      sel.appendChild(o);
+    });
+    if (cur) sel.value = cur;
+  }
+
+  function onSel(id, did) { openStream(id, did); }
+
+  function removeTile(id) {
+    stopStream(id); delete tiles[id];
+    var el = document.getElementById('ctile-' + id); if (el) el.remove();
+    updateStats(); updateHeader();
+  }
+
+  // ─── Stream ───────────────────────────────────────────────────────────────
+  async function openStream(id, deviceId) {
+    var tile = tiles[id]; if (!tile) return;
+    stopStream(id);
+    showLoad(id, true); showNos(id, false);
+    setDot(id, ''); setLive(id, false); setInfo(id, false, '');
+    setBtnSS(id, true);
+    try {
+      var stream = await navigator.mediaDevices.getUserMedia({
+        video:{ deviceId:{exact:deviceId}, width:{ideal:1920}, height:{ideal:1080}, frameRate:{ideal:60} }, audio:false
+      });
+      tile.stream = stream; tile.deviceId = deviceId;
+      
+      // Создаем фоновый элемент видео для декодирования потока
+      var rawVid = document.createElement('video');
+      rawVid.muted = true;
+      rawVid.playsInline = true;
+      rawVid.srcObject = stream;
+      
+      // Стилизуем и добавляем в DOM, чтобы предотвратить троттлинг декодирования браузером.
+      // Используем размер 320x240 (вместо 1x1), чтобы Chrome не считал видео невидимым и не отключал декодер.
+      rawVid.style.position = 'absolute';
+      rawVid.style.top = '-9999px';
+      rawVid.style.left = '-9999px';
+      rawVid.style.width = '320px';
+      rawVid.style.height = '240px';
+      rawVid.style.opacity = '0.01';
+      rawVid.style.pointerEvents = 'none';
+      document.body.appendChild(rawVid);
+      
+      await rawVid.play();
+      tile.rawVideo = rawVid;
+      
+      // Ждем пока видео реально начнет воспроизводиться и отдаст ненулевое разрешение кадров
+      await new Promise(function(resolve) {
+        var interval = setInterval(function() {
+          if (rawVid.videoWidth > 0 && rawVid.videoHeight > 0) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 50);
+        setTimeout(function() {
+          clearInterval(interval);
+          resolve();
+        }, 3000); // Тайм-аут 3 секунды
+      });
+      
+      // Создаем фоновый холст с фиксированным разрешением 1280x720 для стабильности captureStream
+      var osdCanvas = document.createElement('canvas');
+      osdCanvas.width = 1280;
+      osdCanvas.height = 720;
+      tile.osdCanvas = osdCanvas;
+      tile.osdCtx = osdCanvas.getContext('2d');
+      
+      startOsdLoop(id);
+      
+      // Захватываем поток с холста (30 FPS) и выводим его в основной элемент
+      var canvasStream = osdCanvas.captureStream(30);
+      var vid = document.getElementById('vid-' + id);
+      vid.srcObject = canvasStream;
+      await vid.play();
+      
+      var sel = document.getElementById('cs-' + id); if (sel) sel.value = deviceId;
+      showLoad(id, false); setLive(id, true); setDot(id, 'on');
+      document.getElementById('ctile-' + id).classList.add('streaming');
+      startFps(id);
+      vid.addEventListener('loadedmetadata', function(){ updateInfo(id); });
+      toast('success', ICONS.check + ' ' + camLabel(deviceId));
+    } catch(e) {
+      showLoad(id, false); showNos(id, true); setDot(id, 'err'); setBtnSS(id, false);
+      toast('error', 'Ошибка: ' + e.message.slice(0, 55));
+    }
+    updateStats(); updateHeader();
+  }
+
+  function stopStream(id) {
+    var tile = tiles[id]; if (!tile) return;
+    if (tile.recording) {
+      stopRecording(id);
+    }
+    if (tile.osdRafId) { clearTimeout(tile.osdRafId); tile.osdRafId = null; }
+    if (tile.rawVideo) {
+      tile.rawVideo.srcObject = null;
+      try {
+        tile.rawVideo.remove();
+      } catch (e) {}
+      tile.rawVideo = null;
+    }
+    tile.osdCanvas = null;
+    tile.osdCtx = null;
+    if (tile.stream) { tile.stream.getTracks().forEach(function(t){t.stop();}); tile.stream = null; }
+    var vid = document.getElementById('vid-' + id); if (vid) vid.srcObject = null;
+    stopFps(id); setLive(id, false); setInfo(id, false, ''); setDot(id, '');
+    showNos(id, true);
+    var el = document.getElementById('ctile-' + id); if (el) el.classList.remove('streaming');
+    setBtnSS(id, false);
+    updateStats(); updateHeader();
+  }
+
+  function toggleStream(id) {
+    var tile = tiles[id]; if (!tile) return;
+    if (tile.stream) { stopStream(id); }
+    else {
+      var sel = document.getElementById('cs-' + id);
+      var did = tile.deviceId || (sel && sel.value) || (allCameras[0] && allCameras[0].deviceId);
+      if (did) openStream(id, did);
+    }
+  }
+
+  function stopAll() {
+    Object.keys(tiles).forEach(function(id){ stopStream(id); });
+    toast('info', 'Все камеры остановлены');
+  }
+
+  function setBtnSS(id, streaming) {
+    var btn = document.getElementById('ss-' + id); if (!btn) return;
+    btn.innerHTML = streaming ? ICONS.stop : ICONS.play;
+    btn.className = streaming ? 'btn btn-danger btn-icon' : 'btn btn-primary btn-icon';
+  }
+
+  // ─── FPS ─────────────────────────────────────────────────────────────────
+  function startFps(id) {
+    var tile = tiles[id];
+    tile.frameCount = 0; tile.lastFpsTime = performance.now();
+    function tick(){ tile.frameCount++; tile.rafId = setTimeout(tick, 1000 / 30); }
+    tile.rafId = setTimeout(tick, 1000 / 30);
+    tile.fpsTimer = setInterval(function(){
+      if (!tile.stream) return;
+      var now = performance.now();
+      var fps = Math.round(tile.frameCount / ((now - tile.lastFpsTime) / 1000));
+      tile.frameCount = 0; tile.lastFpsTime = now;
+      updateInfo(id, fps);
+    }, 1000);
+  }
+  function stopFps(id) {
+    var tile = tiles[id]; if (!tile) return;
+    if (tile.rafId) { clearTimeout(tile.rafId); tile.rafId = null; }
+    if (tile.fpsTimer) { clearInterval(tile.fpsTimer); tile.fpsTimer = null; }
+  }
+  function updateInfo(id, fps) {
+    var tile = tiles[id];
+    if (!tile || !tile.rawVideo) return;
+    var w = tile.rawVideo.videoWidth;
+    var h = tile.rawVideo.videoHeight;
+    if (w && h) setInfo(id, true, w + 'x' + h + (fps ? ' · ' + fps + 'fps' : ''));
+  }
+
+  // ─── Snapshot ─────────────────────────────────────────────────────────────
+  function doSnap(id) {
+    var tile = tiles[id];
+    if (!tile || !tile.stream) { toast('error','Нет активной камеры'); return; }
+    var vid = document.getElementById('vid-' + id);
+    var c = document.getElementById('snap-canvas');
+    c.width = vid.videoWidth || 1280;
+    c.height = vid.videoHeight || 720;
+    var ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, c.width, c.height);
+    // Так как OSD и зеркалирование уже наложены на поток, просто рисуем кадр
+    ctx.drawImage(vid, 0, 0);
+
+    var url = c.toDataURL('image/png');
+    addThumb(url, camLabel(tile.deviceId));
+    totalSnaps++;
+    document.getElementById('s-snaps').textContent = totalSnaps;
+    document.getElementById('snap-count').textContent = totalSnaps;
+    toast('success', 'Снимок — ' + camLabel(tile.deviceId));
+  }
+  function takeAllSnapshots() {
+    var active = Object.keys(tiles).filter(function(id){ return tiles[id].stream; });
+    if (!active.length) { toast('error','Нет активных камер'); return; }
+    active.forEach(function(id){ doSnap(id); });
+  }
+  function addThumb(url, label) {
+    document.getElementById('snap-drawer').style.display = '';
+    var t = new Date().toLocaleTimeString('ru-RU');
+    var card = document.createElement('div'); card.className = 'sthumb';
+    card.innerHTML = '<img src="'+url+'" alt="'+label+'" />'
+      + '<div class="stmeta"><span>'+t+'</span><span class="stdl">' + ICONS.download + '</span></div>';
+    card.querySelector('.stdl').addEventListener('click', function(e){
+      e.stopPropagation();
+      var a = document.createElement('a'); a.href = url; a.download = 'cam_'+t.replace(/:/g,'-')+'.png'; a.click();
+    });
+    document.getElementById('snap-body').prepend(card);
+  }
+  function toggleSnapDrawer() {
+    snapOpen = !snapOpen;
+    document.getElementById('snap-body').classList.toggle('open', snapOpen);
+    document.getElementById('snap-arrow').innerHTML = snapOpen ? ICONS.chevronUp : ICONS.chevronDown;
+  }
+
+  // ─── Layout ───────────────────────────────────────────────────────────────
+  function setLayout(l) {
+    document.getElementById('grid').className = 'grid-area ' + l;
+    ['la','l1','l2','l3','l4'].forEach(function(x){
+      var b = document.getElementById('lb-' + x); if (b) b.classList.toggle('active', x === l);
+    });
+  }
+
+  // ─── UI helpers ───────────────────────────────────────────────────────────
+  function showLoad(id, on)  { var e=document.getElementById('tl-'+id); if(e) e.className='tload'+(on?'':' h'); }
+  function showNos(id, on)   { var e=document.getElementById('tn-'+id); if(e) e.className='tnos'+(on?'':' h'); }
+  function setLive(id, on)   {
+    var e=document.getElementById('lv-'+id); if(e) e.classList.toggle('on',on);
+    var osd=document.getElementById('osd-'+id); if(osd) osd.classList.toggle('on',on);
+    var osdB=document.getElementById('osd-b-'+id); if(osdB) osdB.classList.toggle('on',on);
+  }
+  function setInfo(id, on, txt) {
+    var e=document.getElementById('ti-'+id); if(!e) return;
+    e.classList.toggle('on',on); if(txt!==undefined) e.textContent=txt;
+  }
+  function setDot(id, st) {
+    var e=document.getElementById('cd-'+id); if(!e) return;
+    e.className='tcdot'+(st==='on'?' on':st==='err'?' err':'');
+  }
+  function toggleMirror(id) {
+    var tile=tiles[id]; if(!tile) return;
+    tile.mirrored=!tile.mirrored;
+    var btn=document.getElementById('mr-'+id); if(btn) btn.classList.toggle('active',tile.mirrored);
+  }
+  var mouseIdleTimer = null;
+  document.addEventListener('mousemove', function() {
+    if (document.body.classList.contains('fullscreen-active')) {
+      document.body.classList.remove('mouse-idle');
+      clearTimeout(mouseIdleTimer);
+      mouseIdleTimer = setTimeout(function() {
+        if (document.body.classList.contains('fullscreen-active')) {
+          document.body.classList.add('mouse-idle');
+        }
+      }, 3000);
+    }
+  });
+
+  function toggleFullscreen(id) {
+    var el = document.getElementById('vw-' + id);
+    if (el) {
+      el.classList.toggle('fs-mode');
+      var isFs = el.classList.contains('fs-mode');
+      document.body.classList.toggle('fullscreen-active', isFs);
+      if (isFs) {
+        document.body.classList.remove('mouse-idle');
+        clearTimeout(mouseIdleTimer);
+        mouseIdleTimer = setTimeout(function() {
+          if (document.body.classList.contains('fullscreen-active')) {
+            document.body.classList.add('mouse-idle');
+          }
+        }, 3000);
+      } else {
+        document.body.classList.remove('mouse-idle');
+        clearTimeout(mouseIdleTimer);
+      }
+    }
+  }
+
+  // Handle ESC key to exit fullscreen or close modals
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      var activeFs = document.querySelector('.tile-vw.fs-mode');
+      if (activeFs) {
+        activeFs.classList.remove('fs-mode');
+        document.body.classList.remove('fullscreen-active');
+        document.body.classList.remove('mouse-idle');
+        clearTimeout(mouseIdleTimer);
+      }
+      hideQrModal();
+      hidePrivacyModal();
+    }
+  });
+  function camLabel(did) {
+    var c=allCameras.find(function(x){return x.deviceId===did;}); return c?(c.label||'Камера'):'Камера';
+  }
+  function updateStats() {
+    document.getElementById('s-active').textContent =
+      Object.values(tiles).filter(function(t){return !!t.stream;}).length;
+  }
+  function updateHeader() {
+    var n = Object.values(tiles).filter(function(t){return !!t.stream;}).length;
+    document.getElementById('status-dot').className = 'dot' + (n>0?' on':'');
+    document.getElementById('status-txt').textContent = n>0 ? ('Активно: '+n+' '+plural(n,'камера','камеры','камер')) : 'Нет подключения';
+  }
+  function plural(n,a,b,c){ var m=n%100; if(m>=11&&m<=19) return c; m=n%10; return m===1?a:m>=2&&m<=4?b:c; }
+
+  // ─── Toast ────────────────────────────────────────────────────────────────
+  function toast(type, msg) {
+    var box=document.getElementById('toasts');
+    var el=document.createElement('div'); el.className='toast '+type; el.innerHTML=msg;
+    box.appendChild(el);
+    setTimeout(function(){ el.classList.add('bye'); setTimeout(function(){el.remove();},260); }, 3500);
+  }
+
+  // ─── OSD Canvas drawing loop ───
+  function startOsdLoop(id) {
+    var tile = tiles[id];
+    if (!tile) return;
+    
+    function tick() {
+      if (!tile.stream || !tile.rawVideo) return;
+      var rawVid = tile.rawVideo;
+      var canvas = tile.osdCanvas;
+      var ctx = tile.osdCtx;
+      
+      if (rawVid.videoWidth && rawVid.videoHeight) {
+        ctx.clearRect(0, 0, 1280, 720);
+        
+        if (tile.mirrored) {
+          ctx.translate(1280, 0);
+          ctx.scale(-1, 1);
+        }
+        ctx.drawImage(rawVid, 0, 0, 1280, 720);
+        if (tile.mirrored) {
+          ctx.setTransform(1,0,0,1,0,0);
+        }
+        
+        // Рисуем OSD (дата, время с секундами, название) с фиксированным размером шрифта
+        var fontSize = 32;
+        ctx.font = 'bold ' + fontSize + 'px "JetBrains Mono", Courier, monospace';
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+        ctx.lineWidth = 5;
+        ctx.lineJoin = 'round';
+        ctx.fillStyle = '#ffffff';
+        
+        // 1. Имя камеры (левый верхний угол)
+        var camName = camLabel(tile.deviceId);
+        var textX_left = 30;
+        var textY = 30 + fontSize;
+        ctx.strokeText(camName, textX_left, textY);
+        ctx.fillText(camName, textX_left, textY);
+        
+        // 2. Дата и время (правый верхний угол)
+        var now = new Date();
+        var dateStr = now.toLocaleDateString('ru-RU') + ' ' + now.toLocaleTimeString('ru-RU');
+        var textWidth = ctx.measureText(dateStr).width;
+        var textX_right = 1280 - textWidth - 30;
+        ctx.strokeText(dateStr, textX_right, textY);
+        ctx.fillText(dateStr, textX_right, textY);
+        
+        // 3. Водяной знак CamView (левый нижний угол)
+        var brandText = "CamView";
+        var textY_bottom = 720 - 30;
+        ctx.strokeText(brandText, textX_left, textY_bottom);
+        ctx.fillText(brandText, textX_left, textY_bottom);
+      }
+      
+      tile.osdRafId = setTimeout(tick, 1000 / 30);
+    }
+    tile.osdRafId = setTimeout(tick, 1000 / 30);
+  }
+
+  // ─── Video Recording (MediaRecorder) ───
+  function toggleRecord(id) {
+    var tile = tiles[id];
+    if (!tile || !tile.stream) { toast('error', 'Нет активной камеры для записи'); return; }
+    
+    if (tile.recording) {
+      stopRecording(id);
+    } else {
+      startRecording(id);
+    }
+  }
+
+  function startRecording(id) {
+    var tile = tiles[id];
+    if (!tile || !tile.stream) return;
+    
+    var vid = document.getElementById('vid-' + id);
+    var recordStream = vid.srcObject;
+    if (!recordStream) { toast('error', 'Не удалось получить поток для записи'); return; }
+    
+    var options = { mimeType: 'video/mp4;codecs=h264' };
+    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+      options = { mimeType: 'video/mp4' };
+    }
+    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+      options = { mimeType: 'video/webm;codecs=vp9' };
+      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+        options = { mimeType: 'video/webm;codecs=vp8' };
+      }
+      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+        options = { mimeType: 'video/webm' };
+      }
+    }
+    
+    try {
+      tile.recordedChunks = [];
+      tile.mediaRecorder = new MediaRecorder(recordStream, options);
+      tile.mediaRecorder.ondataavailable = function(e) {
+        if (e.data && e.data.size > 0) {
+          tile.recordedChunks.push(e.data);
+        }
+      };
+      
+      tile.mediaRecorder.onstop = async function() {
+        var mime = tile.mediaRecorder.mimeType || 'video/webm';
+        var blob = new Blob(tile.recordedChunks, { type: mime });
+        
+        var now = new Date();
+        var t = now.toLocaleTimeString('ru-RU').replace(/:/g, '-');
+        var d = now.toLocaleDateString('ru-RU').replace(/\./g, '-');
+        var name = camLabel(tile.deviceId).replace(/[^a-zA-Z0-9а-яА-Я_-]/g, '_');
+        var ext = mime.indexOf('mp4') !== -1 ? 'mp4' : 'webm';
+        var filename = 'record_' + name + '_' + d + '_' + t + '.' + ext;
+        
+        if (window.camBridge && window.camBridge.saveRecord) {
+          try {
+            var arrayBuffer = await blob.arrayBuffer();
+            var res = await window.camBridge.saveRecord({ filename: filename, buffer: arrayBuffer });
+            if (res && res.ok) {
+              toast('success', 'Запись сохранена в папку: ' + filename);
+            } else {
+              toast('error', 'Ошибка сохранения: ' + (res ? res.error : 'Неизвестная ошибка'));
+            }
+          } catch (err) {
+            toast('error', 'Ошибка конвертации записи: ' + err.message);
+          }
+        } else {
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          a.click();
+          toast('success', 'Запись скачивается: ' + filename);
+        }
+        
+        tile.recordedChunks = [];
+      };
+      
+      tile.mediaRecorder.start(1000);
+      tile.recording = true;
+      updateRecordUI(id, true);
+      toast('info', ICONS.recordDot + ' Запись запущена: ' + camLabel(tile.deviceId));
+    } catch (e) {
+      toast('error', 'Ошибка записи: ' + e.message);
+    }
+  }
+
+  function stopRecording(id) {
+    var tile = tiles[id];
+    if (!tile || !tile.recording || !tile.mediaRecorder) return;
+    
+    tile.mediaRecorder.stop();
+    tile.recording = false;
+    updateRecordUI(id, false);
+  }
+
+  function updateRecordUI(id, isRecording) {
+    var btn = document.getElementById('rec-' + id);
+    var btnOv = document.getElementById('rec-ov-' + id);
+    
+    if (btn) {
+      btn.innerHTML = isRecording ? ICONS.recordSquare : ICONS.recordDot;
+      btn.className = isRecording ? 'btn btn-danger btn-icon recording-blink' : 'btn btn-ghost btn-icon';
+      btn.title = isRecording ? 'Остановить запись' : 'Запись';
+      if (isRecording) {
+        btn.style.color = '#fff';
+        btn.style.background = 'var(--red)';
+      } else {
+        btn.style.color = '';
+        btn.style.background = '';
+      }
+    }
+    
+    if (btnOv) {
+      btnOv.innerHTML = isRecording ? (ICONS.stop + ' Стоп зап.') : (ICONS.recordDot + ' Запись');
+      btnOv.className = isRecording ? 'btn btn-danger btn-sm' : 'btn btn-ghost btn-sm';
+    }
+  }
+
+  // ─── Device change ────────────────────────────────────────────────────────
+  if (navigator.mediaDevices)
+    navigator.mediaDevices.addEventListener('devicechange', async function(){ await refreshCams(); toast('info','Устройства обновлены'); });
+
+  // Auto-start in Electron
+  window.addEventListener('DOMContentLoaded', function() {
+    if (navigator.userAgent.toLowerCase().includes('electron')) initApp();
+    initRecordDir();
+  });
+
+  // ─── Recordings directory configuration (Electron only) ───
+  async function initRecordDir() {
+    var row = document.getElementById('record-dir-row');
+    if (window.camBridge && window.camBridge.getRecordDir) {
+      try {
+        var dir = await window.camBridge.getRecordDir();
+        document.getElementById('rec-dir-input').value = dir;
+      } catch (e) {
+        document.getElementById('rec-dir-input').value = 'Ошибка загрузки пути';
+      }
+    } else {
+      if (row) row.style.display = 'none';
+    }
+  }
+
+  async function selectRecordDir() {
+    if (window.camBridge && window.camBridge.selectRecordDir) {
+      var dir = await window.camBridge.selectRecordDir();
+      if (dir) {
+        document.getElementById('rec-dir-input').value = dir;
+        toast('success', 'Папка сохранений изменена');
+      }
+    }
+  }
+
+  async function openRecordDir() {
+    if (window.camBridge && window.camBridge.openRecordDir) {
+      var success = await window.camBridge.openRecordDir();
+      if (!success) {
+        toast('error', 'Не удалось открыть папку');
+      }
+    }
+  }
+</script>
+</body>
+</html>
