@@ -599,7 +599,8 @@ ipcMain.handle('srv-get-config', () => {
     pinggySubdomain: cfg.pinggySubdomain || '',
     pinggySuffix: cfg.pinggySuffix || '.a.free.pinggy.link',
     customTunnelUrl: cfg.customTunnelUrl || '',
-    language: cfg.language || 'ru'
+    language: cfg.language || 'ru',
+    isDemo: process.argv.includes('--demo')
   };
 });
 
@@ -702,7 +703,11 @@ function createWindow() {
   session.defaultSession.setPermissionRequestHandler((_wc, perm, cb) => cb(perm === 'media'));
   session.defaultSession.setPermissionCheckHandler((_wc, perm) => perm === 'media');
 
-  mainWindow.loadFile('index.html');
+  if (process.argv.includes('--capture-demo') || process.argv.includes('--demo')) {
+    mainWindow.loadFile('index.html', { query: { demo: '1' } });
+  } else {
+    mainWindow.loadFile('index.html');
+  }
   mainWindow.once('ready-to-show', () => mainWindow.show());
   mainWindow.setMenuBarVisibility(false);
   
@@ -728,9 +733,142 @@ function createWindow() {
   });
 }
 
+async function runDemoCapture() {
+  const outDir = path.join(__dirname, 'docs', 'screenshots');
+  if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  console.log('[Capture] Waiting 3.5s for 4 demo cameras to initialize...');
+  await sleep(3500);
+
+  // 1. Desktop grid screenshot
+  console.log('[Capture] Capturing desktop_grid.png...');
+  const gridImg = await mainWindow.webContents.capturePage();
+  fs.writeFileSync(path.join(outDir, 'desktop_grid.png'), gridImg.toPNG());
+  console.log('[Capture] desktop_grid.png saved.');
+
+  // 2. Network modal screenshot
+  console.log('[Capture] Opening network panel and QR modal...');
+  await mainWindow.webContents.executeJavaScript(`
+    (async () => {
+      toggleRemotePanel();
+      await startServer();
+      showQrModal();
+    })().catch(e => console.error(e));
+  `);
+  await sleep(1500);
+
+  console.log('[Capture] Capturing network_modal.png...');
+  const netImg = await mainWindow.webContents.capturePage();
+  fs.writeFileSync(path.join(outDir, 'network_modal.png'), netImg.toPNG());
+  console.log('[Capture] network_modal.png saved.');
+
+  // Close QR modal and remote panel for full grid view
+  await mainWindow.webContents.executeJavaScript(`
+    if (typeof hideQrModal === 'function') hideQrModal();
+    var rp = document.getElementById('remote-panel');
+    if (rp && rp.classList.contains('open') && typeof toggleRemotePanel === 'function') {
+      toggleRemotePanel();
+    }
+  `);
+  await sleep(800);
+
+  // 3. Mobile view screenshot
+  console.log('[Capture] Capturing mobile_view.png...');
+  const mobileWin = new BrowserWindow({
+    width: 412,
+    height: 840,
+    show: false,
+    backgroundColor: '#08090d',
+    webPreferences: {
+      backgroundThrottling: false
+    }
+  });
+  await mobileWin.loadFile('remote.html');
+  await sleep(1000);
+  const mobImg = await mobileWin.webContents.capturePage();
+  fs.writeFileSync(path.join(outDir, 'mobile_view.png'), mobImg.toPNG());
+  console.log('[Capture] mobile_view.png saved.');
+  mobileWin.destroy();
+
+  // 4. Record animated GIF (20 frames over ~2.4 seconds)
+  console.log('[Capture] Capturing animated demo.gif...');
+  const omggif = require('omggif');
+  const gifW = 680;
+  const gifH = 414;
+  const numFrames = 20;
+  const gifBuffer = Buffer.alloc(gifW * gifH * (numFrames + 5));
+  const gif = new omggif.GifWriter(gifBuffer, gifW, gifH, { loop: 0 });
+
+  function quantizeFrame(bmp, width, height) {
+    const bins = new Map();
+    for (let i = 0; i < bmp.length; i += 4) {
+      const b = bmp[i] & 0xf8;
+      const g = bmp[i + 1] & 0xf8;
+      const r = bmp[i + 2] & 0xf8;
+      const key = (r << 16) | (g << 8) | b;
+      bins.set(key, (bins.get(key) || 0) + 1);
+    }
+    const sorted = Array.from(bins.entries()).sort((a, b) => b[1] - a[1]);
+    const palette = [];
+    for (let i = 0; i < 256; i++) {
+      palette.push(i < sorted.length ? sorted[i][0] : 0);
+    }
+    const indexed = new Uint8Array(width * height);
+    const searchLimit = Math.min(96, sorted.length);
+    for (let i = 0, p = 0; i < bmp.length; i += 4, p++) {
+      const b = bmp[i];
+      const g = bmp[i + 1];
+      const r = bmp[i + 2];
+      let bestDist = Infinity;
+      let bestIdx = 0;
+      for (let c = 0; c < searchLimit; c++) {
+        const color = palette[c];
+        const dr = r - ((color >> 16) & 0xff);
+        const dg = g - ((color >> 8) & 0xff);
+        const db = b - (color & 0xff);
+        const dist = dr * dr + dg * dg + db * db;
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestIdx = c;
+          if (dist === 0) break;
+        }
+      }
+      indexed[p] = bestIdx;
+    }
+    return { palette, indexed };
+  }
+
+  for (let f = 0; f < numFrames; f++) {
+    const frameImg = await mainWindow.webContents.capturePage();
+    const resized = frameImg.resize({ width: gifW, height: gifH, quality: 'good' });
+    const bmp = resized.toBitmap();
+    const { palette, indexed } = quantizeFrame(bmp, gifW, gifH);
+
+    gif.addFrame(0, 0, gifW, gifH, indexed, { palette, delay: 12 });
+    await sleep(120);
+  }
+
+  const gifLen = gif.end();
+  fs.writeFileSync(path.join(outDir, 'demo.gif'), gifBuffer.subarray(0, gifLen));
+  console.log(`[Capture] demo.gif saved (${(gifLen / 1024).toFixed(1)} KB).`);
+
+  console.log('[Capture] All screenshots and demo.gif successfully created!');
+  isQuitting = true;
+  app.exit(0);
+}
+
 app.whenReady().then(() => {
   createTray();
   createWindow();
+  if (process.argv.includes('--capture-demo')) {
+    mainWindow.once('ready-to-show', () => {
+      runDemoCapture().catch(e => {
+        console.error('[Capture Error]:', e);
+        process.exit(1);
+      });
+    });
+  }
 });
 
 app.on('before-quit', () => {

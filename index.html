@@ -353,6 +353,9 @@
     <button class="btn btn-ghost btn-sm" onclick="addCamTile()"><svg class="svg-ic" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> <span data-i18n="tb_add_cam">Добавить камеру</span></button>
     <button class="btn btn-ghost btn-sm" onclick="takeAllSnapshots()"><svg class="svg-ic" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> <span data-i18n="tb_snap_all">Снимок всех</span></button>
     <div class="tgap"></div>
+    <button class="btn btn-ghost btn-sm" id="demo-mode-btn" onclick="toggleDemoMode()" style="gap:6px">
+      <svg class="svg-ic" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg> <span data-i18n="tb_demo">Демо-режим</span>
+    </button>
     <button class="btn btn-ghost btn-sm" id="remote-toggle-btn" onclick="toggleRemotePanel()" style="gap:6px">
       <span id="remote-srv-dot" style="width:6px;height:6px;border-radius:50%;background:var(--t3);display:inline-block;transition:background .3s"></span>
       <svg class="svg-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> <span data-i18n="tb_network">Сеть</span>
@@ -679,6 +682,7 @@
   var customTunnelUrl = '';
   var isCloudflaredInstalled = false;
   var isDownloadingCf = false;
+  var isDemoMode = false;
 
   // ─── Internationalization (RU / EN) ───────────────────────────────────────
   var I18N = {
@@ -700,6 +704,7 @@
       lb_l4: '4 камеры',
       tb_add_cam: 'Добавить камеру',
       tb_snap_all: 'Снимок всех',
+      tb_demo: 'Демо-режим',
       tb_network: 'Сеть',
       tb_stop_all: 'Остановить все',
       lbl_access_mode: 'Режим доступа',
@@ -801,7 +806,13 @@
       toast_cam_perm_err: 'Доступ к камере запрещён',
       toast_cf_connecting: 'Подключение Cloudflare Tunnel...',
       toast_lt_connecting: 'Подключение LocalTunnel...',
-      toast_https_warn: 'Для HTTPS на удаленном устройстве нужно будет подтвердить самоподписанный сертификат'
+      toast_https_warn: 'Для HTTPS на удаленном устройстве нужно будет подтвердить самоподписанный сертификат',
+      toast_demo_on: 'Режим демо-камер активирован (4 виртуальные камеры)',
+      toast_demo_off: 'Обычный режим камер восстановлен',
+      demo_cam_1: 'Камера 1 — Въезд и парковка',
+      demo_cam_2: 'Камера 2 — Гостиная / Холл',
+      demo_cam_3: 'Камера 3 — Задний двор и бассейн',
+      demo_cam_4: 'Камера 4 — Офис и серверная'
     },
     en: {
       app_title: 'CamView — Multi-Camera Viewer',
@@ -821,6 +832,7 @@
       lb_l4: '4 cameras',
       tb_add_cam: 'Add Camera',
       tb_snap_all: 'Snap All',
+      tb_demo: 'Demo Mode',
       tb_network: 'Network',
       tb_stop_all: 'Stop All',
       lbl_access_mode: 'Access Mode',
@@ -922,7 +934,13 @@
       toast_cam_perm_err: 'Camera access denied',
       toast_cf_connecting: 'Connecting Cloudflare Tunnel...',
       toast_lt_connecting: 'Connecting LocalTunnel...',
-      toast_https_warn: 'For HTTPS on remote device you may need to accept the self-signed certificate'
+      toast_https_warn: 'For HTTPS on remote device you may need to accept the self-signed certificate',
+      toast_demo_on: 'Demo surveillance mode activated (4 virtual cameras)',
+      toast_demo_off: 'Standard camera mode restored',
+      demo_cam_1: 'Cam 1 — Driveway & Parking',
+      demo_cam_2: 'Cam 2 — Living Room / Hall',
+      demo_cam_3: 'Cam 3 — Backyard & Pool',
+      demo_cam_4: 'Cam 4 — Office & Server Room'
     }
   };
 
@@ -966,6 +984,15 @@
       } else {
         srvBtn.innerHTML = ICONS.play + ' ' + t('srv_start_btn');
       }
+    }
+
+    if (isDemoMode) {
+      allCameras = [
+        { deviceId: 'demo-1', label: t('demo_cam_1') },
+        { deviceId: 'demo-2', label: t('demo_cam_2') },
+        { deviceId: 'demo-3', label: t('demo_cam_3') },
+        { deviceId: 'demo-4', label: t('demo_cam_4') }
+      ];
     }
 
     Object.keys(tiles).forEach(function(id) {
@@ -1188,10 +1215,19 @@
     });
   }
 
-  // ─── Init ─────────────────────────────────────────────────────────────────
   async function initApp() {
     var isElectron = navigator.userAgent.toLowerCase().includes('electron');
-    if (!isElectron) {
+    var savedCfg = window.camBridge ? await window.camBridge.getConfig() : null;
+    var urlParams = new URLSearchParams(window.location.search);
+    var wantDemo = urlParams.has('demo') || (savedCfg && savedCfg.isDemo);
+
+    if (wantDemo) {
+      isDemoMode = true;
+      var demoBtn = document.getElementById('demo-mode-btn');
+      if (demoBtn) demoBtn.classList.add('active');
+    }
+
+    if (!isElectron && !isDemoMode) {
       try {
         var tmp = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
         tmp.getTracks().forEach(function(t){ t.stop(); });
@@ -1202,7 +1238,15 @@
     var as = document.getElementById('app-screen');
     as.style.display = 'flex'; as.style.flexDirection = 'column';
     updateHeader();
-    addCamTile();
+    if (isDemoMode) {
+      setLayout('l4');
+      addCamTile('demo-1');
+      addCamTile('demo-2');
+      addCamTile('demo-3');
+      addCamTile('demo-4');
+    } else {
+      addCamTile();
+    }
     
     if (window.camBridge) {
       var savedCfg = await window.camBridge.getConfig();
@@ -1289,10 +1333,50 @@
   }
 
   async function refreshCams() {
-    var devs = await navigator.mediaDevices.enumerateDevices();
-    allCameras = devs.filter(function(d){ return d.kind === 'videoinput'; });
+    if (isDemoMode) {
+      allCameras = [
+        { deviceId: 'demo-1', label: t('demo_cam_1') },
+        { deviceId: 'demo-2', label: t('demo_cam_2') },
+        { deviceId: 'demo-3', label: t('demo_cam_3') },
+        { deviceId: 'demo-4', label: t('demo_cam_4') }
+      ];
+    } else {
+      var devs = await navigator.mediaDevices.enumerateDevices();
+      allCameras = devs.filter(function(d){ return d.kind === 'videoinput'; });
+    }
     document.getElementById('s-total').textContent = allCameras.length;
     Object.keys(tiles).forEach(function(id){ fillSelect(id); });
+  }
+
+  function toggleDemoMode() {
+    setDemoMode(!isDemoMode);
+  }
+
+  async function setDemoMode(enable) {
+    isDemoMode = enable;
+    var btn = document.getElementById('demo-mode-btn');
+    if (btn) btn.classList.toggle('active', isDemoMode);
+
+    stopAll();
+    var grid = document.getElementById('grid');
+    if (grid) grid.innerHTML = '';
+    tiles = {};
+    tileSeq = 0;
+
+    await refreshCams();
+
+    if (isDemoMode) {
+      setLayout('l4');
+      addCamTile('demo-1');
+      addCamTile('demo-2');
+      addCamTile('demo-3');
+      addCamTile('demo-4');
+      toast('info', t('toast_demo_on'));
+    } else {
+      setLayout('la');
+      addCamTile();
+      toast('info', t('toast_demo_off'));
+    }
   }
 
   // ─── Remote access panel ──────────────────────────────────────────────────
@@ -1730,12 +1814,488 @@
   }
 
   // ─── Stream ───────────────────────────────────────────────────────────────
+  function startDemoStream(id, deviceId) {
+    var tile = tiles[id]; if (!tile) return;
+    tile.deviceId = deviceId;
+    
+    var canvas = document.createElement('canvas');
+    canvas.width = 1280;
+    canvas.height = 720;
+    tile.osdCanvas = canvas;
+    tile.osdCtx = canvas.getContext('2d');
+    
+    var stream = canvas.captureStream(30);
+    tile.stream = stream;
+    tile.rawVideo = { videoWidth: 1280, videoHeight: 720 };
+    
+    var vid = document.getElementById('vid-' + id);
+    if (vid) {
+      vid.srcObject = stream;
+      vid.play().catch(function(){});
+    }
+    
+    startDemoRenderLoop(id, deviceId);
+    
+    var sel = document.getElementById('cs-' + id); if (sel) sel.value = deviceId;
+    showLoad(id, false); setLive(id, true); setDot(id, 'on');
+    document.getElementById('ctile-' + id).classList.add('streaming');
+    startFps(id);
+    updateInfo(id);
+    toast('success', ICONS.check + ' ' + camLabel(deviceId));
+    updateStats(); updateHeader();
+  }
+
+  function startDemoRenderLoop(id, deviceId) {
+    var tile = tiles[id]; if (!tile) return;
+    var canvas = tile.osdCanvas;
+    var ctx = tile.osdCtx;
+    var camIndex = deviceId === 'demo-1' ? 1 : deviceId === 'demo-2' ? 2 : deviceId === 'demo-3' ? 3 : 4;
+    var startTime = Date.now();
+
+    function draw() {
+      if (!tile.stream || !tile.osdCanvas) return;
+      var elapsed = (Date.now() - startTime) / 1000;
+      var now = new Date();
+
+      ctx.clearRect(0, 0, 1280, 720);
+
+      if (tile.mirrored) {
+        ctx.save();
+        ctx.translate(1280, 0);
+        ctx.scale(-1, 1);
+      }
+
+      if (camIndex === 1) {
+        // ── SCENE 1: DRIVEWAY & PARKING ──
+        var bgGrad = ctx.createLinearGradient(0, 0, 0, 720);
+        bgGrad.addColorStop(0, '#060a14');
+        bgGrad.addColorStop(0.5, '#0f172a');
+        bgGrad.addColorStop(1, '#020617');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, 1280, 720);
+
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        for (var s = 0; s < 25; s++) {
+          var sx = (s * 53) % 1280;
+          var sy = (s * 31) % 240;
+          ctx.fillRect(sx, sy, 1.5, 1.5);
+        }
+
+        ctx.fillStyle = '#0b1120';
+        ctx.fillRect(0, 200, 1280, 120);
+        for (var b = 0; b < 16; b++) {
+          var bx = b * 85;
+          var bh = 40 + ((b * 37) % 80);
+          ctx.fillStyle = '#090d1a';
+          ctx.fillRect(bx, 320 - bh, 70, bh);
+          ctx.fillStyle = (b % 3 === 0) ? 'rgba(245, 158, 11, 0.4)' : 'rgba(147, 197, 253, 0.2)';
+          ctx.fillRect(bx + 15, 320 - bh + 15, 8, 8);
+          ctx.fillRect(bx + 40, 320 - bh + 25, 8, 8);
+        }
+
+        ctx.fillStyle = '#1e2538';
+        ctx.beginPath();
+        ctx.moveTo(350, 320);
+        ctx.lineTo(930, 320);
+        ctx.lineTo(1280, 720);
+        ctx.lineTo(0, 720);
+        ctx.fill();
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+        ctx.lineWidth = 4;
+        ctx.setLineDash([20, 20]);
+        ctx.beginPath();
+        ctx.moveTo(640, 320);
+        ctx.lineTo(640, 720);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#151b2e';
+        ctx.fillRect(0, 260, 260, 460);
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        ctx.strokeRect(0, 260, 260, 460);
+
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(1080, 220);
+        ctx.lineTo(1080, 600);
+        ctx.stroke();
+        var lampGrad = ctx.createRadialGradient(1080, 220, 20, 1080, 500, 350);
+        lampGrad.addColorStop(0, 'rgba(251, 191, 36, 0.35)');
+        lampGrad.addColorStop(1, 'transparent');
+        ctx.fillStyle = lampGrad;
+        ctx.beginPath();
+        ctx.moveTo(1080, 220);
+        ctx.lineTo(820, 680);
+        ctx.lineTo(1280, 680);
+        ctx.fill();
+
+        var carProgress = ((elapsed * 0.18) % 1.4) - 0.2;
+        var carX = -200 + carProgress * 1600;
+        var carY = 480 + (carProgress - 0.5) * 60;
+        var carW = 240;
+        var carH = 85;
+
+        if (carX > -250 && carX < 1400) {
+          var hlGrad = ctx.createRadialGradient(carX + carW, carY + 45, 10, carX + carW + 280, carY + 45, 220);
+          hlGrad.addColorStop(0, 'rgba(255, 255, 220, 0.6)');
+          hlGrad.addColorStop(1, 'transparent');
+          ctx.fillStyle = hlGrad;
+          ctx.beginPath();
+          ctx.moveTo(carX + carW, carY + 30);
+          ctx.lineTo(carX + carW + 350, carY - 20);
+          ctx.lineTo(carX + carW + 350, carY + 110);
+          ctx.fill();
+
+          ctx.fillStyle = '#0284c7';
+          ctx.beginPath();
+          ctx.roundRect(carX, carY + 25, carW, carH - 25, [8, 12, 4, 4]);
+          ctx.fill();
+
+          ctx.fillStyle = '#0369a1';
+          ctx.beginPath();
+          ctx.moveTo(carX + 45, carY + 25);
+          ctx.lineTo(carX + 80, carY);
+          ctx.lineTo(carX + 175, carY);
+          ctx.lineTo(carX + 205, carY + 25);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.fillStyle = 'rgba(186, 230, 253, 0.7)';
+          ctx.beginPath();
+          ctx.moveTo(carX + 85, carY + 4);
+          ctx.lineTo(carX + 170, carY + 4);
+          ctx.lineTo(carX + 195, carY + 23);
+          ctx.lineTo(carX + 55, carY + 23);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.fillStyle = '#0f172a';
+          ctx.beginPath();
+          ctx.arc(carX + 50, carY + carH, 20, 0, Math.PI * 2);
+          ctx.arc(carX + carW - 50, carY + carH, 20, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#94a3b8';
+          ctx.beginPath();
+          ctx.arc(carX + 50, carY + carH, 8, 0, Math.PI * 2);
+          ctx.arc(carX + carW - 50, carY + carH, 8, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = '#22c55e';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([]);
+          ctx.strokeRect(carX - 10, carY - 12, carW + 20, carH + 34);
+          ctx.fillStyle = 'rgba(34, 197, 94, 0.9)';
+          ctx.fillRect(carX - 10, carY - 36, 210, 22);
+          ctx.fillStyle = '#000';
+          ctx.font = 'bold 11px "JetBrains Mono", monospace';
+          ctx.fillText('AI: VEHICLE #1 (98%) 24 KM/H', carX - 6, carY - 21);
+        }
+      } else if (camIndex === 2) {
+        // ── SCENE 2: LIVING ROOM / HALL ──
+        var wallGrad = ctx.createLinearGradient(0, 0, 1280, 720);
+        wallGrad.addColorStop(0, '#151722');
+        wallGrad.addColorStop(1, '#1e2133');
+        ctx.fillStyle = wallGrad;
+        ctx.fillRect(0, 0, 1280, 720);
+
+        ctx.fillStyle = '#080b14';
+        ctx.fillRect(160, 100, 420, 280);
+        ctx.fillStyle = '#fef08a';
+        ctx.beginPath();
+        ctx.arc(240, 170, 28, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#080b14';
+        ctx.beginPath();
+        ctx.arc(250, 165, 24, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 8;
+        ctx.strokeRect(160, 100, 420, 280);
+        ctx.beginPath();
+        ctx.moveTo(370, 100); ctx.lineTo(370, 380);
+        ctx.moveTo(160, 240); ctx.lineTo(580, 240);
+        ctx.stroke();
+
+        ctx.fillStyle = '#29211d';
+        ctx.fillRect(0, 500, 1280, 220);
+        for (var fl = 0; fl < 8; fl++) {
+          ctx.strokeStyle = '#1c1613';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(0, 500 + fl * 28);
+          ctx.lineTo(1280, 500 + fl * 28);
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = '#374151';
+        ctx.beginPath();
+        ctx.ellipse(640, 610, 320, 70, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#475569';
+        ctx.beginPath();
+        ctx.roundRect(640, 380, 480, 160, [16, 16, 4, 4]);
+        ctx.fill();
+        ctx.fillStyle = '#64748b';
+        ctx.beginPath();
+        ctx.roundRect(660, 430, 210, 100, 10);
+        ctx.roundRect(890, 430, 210, 100, 10);
+        ctx.fill();
+
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(1160, 240); ctx.lineTo(1160, 540);
+        ctx.stroke();
+        var lampGlow = ctx.createRadialGradient(1160, 240, 10, 1160, 240, 180);
+        lampGlow.addColorStop(0, 'rgba(251, 191, 36, 0.45)');
+        lampGlow.addColorStop(1, 'transparent');
+        ctx.fillStyle = lampGlow;
+        ctx.beginPath();
+        ctx.arc(1160, 240, 180, 0, Math.PI * 2);
+        ctx.fill();
+
+        var clockX = 820, clockY = 180, clockR = 50;
+        ctx.fillStyle = '#f8fafc';
+        ctx.beginPath();
+        ctx.arc(clockX, clockY, clockR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        var secAngle = (now.getSeconds() + now.getMilliseconds() / 1000) * (Math.PI / 30) - Math.PI / 2;
+        var minAngle = (now.getMinutes()) * (Math.PI / 30) - Math.PI / 2;
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(clockX, clockY);
+        ctx.lineTo(clockX + Math.cos(minAngle) * 32, clockY + Math.sin(minAngle) * 32);
+        ctx.stroke();
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(clockX, clockY);
+        ctx.lineTo(clockX + Math.cos(secAngle) * 40, clockY + Math.sin(secAngle) * 40);
+        ctx.stroke();
+
+        var petX = 540 + Math.sin(elapsed * 0.9) * 160;
+        var petY = 590 + Math.cos(elapsed * 0.9) * 25;
+        ctx.fillStyle = '#d97706';
+        ctx.beginPath();
+        ctx.arc(petX, petY, 26, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(petX - 18, petY - 14); ctx.lineTo(petX - 8, petY - 32); ctx.lineTo(petX, petY - 18);
+        ctx.moveTo(petX + 18, petY - 14); ctx.lineTo(petX + 8, petY - 32); ctx.lineTo(petX, petY - 18);
+        ctx.fill();
+
+        ctx.strokeStyle = '#06b6d4';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(petX - 35, petY - 40, 70, 75);
+        ctx.fillStyle = '#06b6d4';
+        ctx.fillRect(petX - 35, petY - 58, 145, 18);
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 11px "JetBrains Mono", monospace';
+        ctx.fillText('AI: PET_MOTION (95%)', petX - 31, petY - 44);
+      } else if (camIndex === 3) {
+        // ── SCENE 3: BACKYARD & GARDEN / POOL ──
+        var sky = ctx.createLinearGradient(0, 0, 0, 400);
+        sky.addColorStop(0, '#020617');
+        sky.addColorStop(1, '#0c192c');
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, 1280, 400);
+
+        ctx.fillStyle = '#14281d';
+        ctx.fillRect(0, 360, 1280, 360);
+
+        var poolGrad = ctx.createLinearGradient(300, 420, 300, 680);
+        poolGrad.addColorStop(0, '#0369a1');
+        poolGrad.addColorStop(1, '#082f49');
+        ctx.fillStyle = poolGrad;
+        ctx.beginPath();
+        ctx.roundRect(280, 440, 720, 220, 24);
+        ctx.fill();
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        for (var rip = 0; rip < 5; rip++) {
+          var ripY = 470 + rip * 36;
+          var waveOffset = Math.sin(elapsed * 2 + rip) * 20;
+          ctx.strokeStyle = 'rgba(186, 230, 253, 0.25)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(320 + waveOffset, ripY);
+          ctx.bezierCurveTo(500, ripY - 10, 700, ripY + 10, 940 + waveOffset, ripY);
+          ctx.stroke();
+        }
+
+        for (var fn = 0; fn < 24; fn++) {
+          ctx.fillStyle = (fn % 2 === 0) ? '#3e2723' : '#4e342e';
+          ctx.fillRect(fn * 55, 270, 50, 110);
+        }
+
+        var sway = Math.sin(elapsed * 1.2) * 8;
+        ctx.fillStyle = '#06130d';
+        ctx.beginPath();
+        ctx.moveTo(1100, 370); ctx.lineTo(1130, 370); ctx.lineTo(1120 + sway, 160); ctx.lineTo(1100 + sway, 160);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(1110 + sway, 140, 85, 0, Math.PI * 2);
+        ctx.arc(1060 + sway, 170, 65, 0, Math.PI * 2);
+        ctx.arc(1170 + sway, 160, 70, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.roundRect(40, 630, 380, 50, 8);
+        ctx.fill();
+        ctx.fillStyle = '#4ade80';
+        ctx.font = '12px "JetBrains Mono", monospace';
+        ctx.fillText('ENVIRONMENT: +21.4°C • HUM: 56%', 55, 652);
+        ctx.fillText('PIR: ARMED • IR NIGHT VISION: AUTO', 55, 670);
+      } else {
+        // ── SCENE 4: OFFICE & SERVER ROOM ──
+        ctx.fillStyle = '#07090e';
+        ctx.fillRect(0, 0, 1280, 720);
+
+        for (var rk = 0; rk < 2; rk++) {
+          var rkX = 80 + rk * 220;
+          ctx.fillStyle = '#111827';
+          ctx.fillRect(rkX, 100, 190, 560);
+          ctx.strokeStyle = '#374151';
+          ctx.lineWidth = 3;
+          ctx.strokeRect(rkX, 100, 190, 560);
+
+          for (var u = 0; u < 11; u++) {
+            var uY = 120 + u * 48;
+            ctx.fillStyle = '#1f2937';
+            ctx.fillRect(rkX + 8, uY, 174, 42);
+            ctx.fillStyle = '#4b5563';
+            ctx.fillRect(rkX + 12, uY + 8, 6, 26);
+            ctx.fillRect(rkX + 172, uY + 8, 6, 26);
+            for (var ld = 0; ld < 6; ld++) {
+              var ledX = rkX + 40 + ld * 20;
+              var isBlinking = ((Date.now() + rk * 500 + u * 200 + ld * 130) % 600) > 200;
+              var ledColor = ld === 5 ? '#f59e0b' : ld === 4 ? '#06b6d4' : '#22c55e';
+              ctx.fillStyle = isBlinking ? ledColor : '#064e3b';
+              ctx.beginPath();
+              ctx.arc(ledX, uY + 21, 3.5, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+        }
+
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(560, 480, 640, 180);
+
+        for (var m = 0; m < 2; m++) {
+          var mX = 600 + m * 290;
+          var mY = 240;
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(mX, mY, 260, 180);
+          ctx.strokeStyle = '#475569';
+          ctx.lineWidth = 5;
+          ctx.strokeRect(mX, mY, 260, 180);
+          ctx.fillStyle = '#334155';
+          ctx.fillRect(mX + 115, mY + 180, 30, 60);
+          ctx.fillRect(mX + 90, mY + 235, 80, 10);
+
+          ctx.fillStyle = '#030712';
+          ctx.fillRect(mX + 6, mY + 6, 248, 168);
+          ctx.strokeStyle = m === 0 ? '#22c55e' : '#06b6d4';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          for (var gx = 0; gx < 240; gx += 10) {
+            var wave = Math.sin(elapsed * 3 + gx * 0.08 + m) * 25 + Math.cos(gx * 0.2) * 10;
+            var gy = mY + 90 + wave;
+            if (gx === 0) ctx.moveTo(mX + 10 + gx, gy);
+            else ctx.lineTo(mX + 10 + gx, gy);
+          }
+          ctx.stroke();
+          ctx.fillStyle = m === 0 ? '#22c55e' : '#06b6d4';
+          ctx.font = '10px "JetBrains Mono", monospace';
+          ctx.fillText(m === 0 ? 'NET TRAFFIC: 4.8 Gbps' : 'SERVER CLUSTER: 34% LOAD', mX + 14, mY + 24);
+        }
+
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.roundRect(560, 120, 400, 65, 8);
+        ctx.fill();
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = '12px "JetBrains Mono", monospace';
+        ctx.fillText('RACK A1 & A2 • 10Gbps SFP+ LINK UP', 580, 145);
+        ctx.fillText('HEALTH: OPTIMAL • UPS: 100% (ONLINE)', 580, 168);
+      }
+
+      if (tile.mirrored) {
+        ctx.restore();
+      }
+
+      // ── UNIVERSAL CCTV HUD ON ALL DEMO CAMERAS ──
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+      for (var sc = 0; sc < 720; sc += 4) {
+        ctx.fillRect(0, sc, 1280, 2);
+      }
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.lineWidth = 2;
+      var cLen = 28;
+      ctx.beginPath(); ctx.moveTo(25, 25 + cLen); ctx.lineTo(25, 25); ctx.lineTo(25 + cLen, 25); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(1255 - cLen, 25); ctx.lineTo(1255, 25); ctx.lineTo(1255, 25 + cLen); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(25, 695 - cLen); ctx.lineTo(25, 695); ctx.lineTo(25 + cLen, 695); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(1255 - cLen, 695); ctx.lineTo(1255, 695); ctx.lineTo(1255, 695 - cLen); ctx.stroke();
+
+      ctx.font = 'bold 28px "JetBrains Mono", Courier, monospace';
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.9)';
+      ctx.lineWidth = 4;
+      ctx.lineJoin = 'round';
+      ctx.fillStyle = '#ffffff';
+
+      var camName = camLabel(tile.deviceId);
+      ctx.strokeText(camName, 40, 60);
+      ctx.fillText(camName, 40, 60);
+
+      var ms = String(now.getMilliseconds()).padStart(3, '0');
+      var dateStr = now.toLocaleDateString(currentLang === 'en' ? 'en-US' : 'ru-RU') + ' ' + now.toLocaleTimeString(currentLang === 'en' ? 'en-US' : 'ru-RU') + '.' + ms;
+      var dateW = ctx.measureText(dateStr).width;
+      ctx.strokeText(dateStr, 1240 - dateW, 60);
+      ctx.fillText(dateStr, 1240 - dateW, 60);
+
+      var isRecBlink = Math.floor(elapsed * 2) % 2 === 0;
+      if (isRecBlink) {
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.arc(45, 672, 8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.font = 'bold 20px "JetBrains Mono", monospace';
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeText('REC  CamView CCTV', 65, 678);
+      ctx.fillText('REC  CamView CCTV', 65, 678);
+
+      var specs = '30.0 FPS • 1280x720 • 4.2 Mbps';
+      var specW = ctx.measureText(specs).width;
+      ctx.strokeText(specs, 1240 - specW, 678);
+      ctx.fillText(specs, 1240 - specW, 678);
+
+      tile.osdRafId = setTimeout(draw, 1000 / 30);
+    }
+
+    tile.osdRafId = setTimeout(draw, 1000 / 30);
+  }
+
   async function openStream(id, deviceId) {
     var tile = tiles[id]; if (!tile) return;
     stopStream(id);
     showLoad(id, true); showNos(id, false);
     setDot(id, ''); setLive(id, false); setInfo(id, false, '');
     setBtnSS(id, true);
+
+    if (deviceId && deviceId.startsWith('demo-')) {
+      startDemoStream(id, deviceId);
+      return;
+    }
     try {
       var stream = await navigator.mediaDevices.getUserMedia({
         video:{ deviceId:{exact:deviceId}, width:{ideal:1920}, height:{ideal:1080}, frameRate:{ideal:60} }, audio:false
@@ -1811,9 +2371,9 @@
     }
     if (tile.osdRafId) { clearTimeout(tile.osdRafId); tile.osdRafId = null; }
     if (tile.rawVideo) {
-      tile.rawVideo.srcObject = null;
+      if (tile.rawVideo.srcObject !== undefined) tile.rawVideo.srcObject = null;
       try {
-        tile.rawVideo.remove();
+        if (typeof tile.rawVideo.remove === 'function') tile.rawVideo.remove();
       } catch (e) {}
       tile.rawVideo = null;
     }

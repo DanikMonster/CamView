@@ -25,6 +25,15 @@
 </p>
 
 <p align="center">
+  <img src="docs/screenshots/demo.gif" alt="CamView Live Demo" width="100%" style="max-width: 820px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);" />
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/desktop_grid.png" alt="Multi-Camera Surveillance Grid" width="49%" style="border-radius: 8px;" />
+  <img src="docs/screenshots/network_modal.png" alt="Remote QR Code Access" width="49%" style="border-radius: 8px;" />
+</p>
+
+<p align="center">
   <a href="#-quick-start-for-users"><b>Download</b></a> •
   <a href="#-key-features"><b>Features</b></a> •
   <a href="#-user-guide"><b>User Guide</b></a> •
@@ -52,6 +61,15 @@ You don't need to install Node.js or compile any code to use CamView:
 - View any number of connected cameras simultaneously (laptop webcams, external USB webcams, HDMI capture cards).
 - Instant layout presets: **Auto-grid**, **1 Camera**, **2 Cameras**, **3 Cameras**, **4 Cameras**.
 - Individual camera controls: Horizontal flip (mirror), fullscreen preview, photo snapshot, recording toggle.
+
+### 🎭 Built-in Virtual Demo Mode
+- Instant 1-click test environment with **4 interactive simulated CCTV feeds**:
+  - 🚗 **Cam 1 — Driveway & Parking**: Animated traffic with realistic headlight beams and AI vehicle detection tracking.
+  - 🛋️ **Cam 2 — Living Room / Hall**: Real-time ticking wall clock, cozy interior lighting, and motion detection.
+  - 🏊 **Cam 3 — Backyard & Pool**: Swaying garden trees, animated water ripple reflections, and environmental telemetry.
+  - 🖥️ **Cam 4 — Office & Server Room**: Blinking server rack LEDs, real-time network traffic waveform graphs.
+- Generates genuine 30 FPS MediaStreams compatible with live MP4 recording, photo snapshots, layout switches, and remote mobile streaming.
+- Launch via toolbar button or command line: `npm run demo` or `CamView.exe --demo`.
 
 ### ⏱️ Burned-In Timestamp & Label (OSD)
 - Hardware-rendered overlay burned directly into every video frame:
