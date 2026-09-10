@@ -17,4 +17,11 @@ contextBridge.exposeInMainWorld('camBridge', {
   getConfig:        ()          => ipcRenderer.invoke('srv-get-config'),
   saveConfig:       (data)      => ipcRenderer.invoke('srv-save-config', data),
   generateQR:       (text)      => ipcRenderer.invoke('srv-gen-qrcode', text),
+  startTunnel:      (options)   => ipcRenderer.invoke('srv-start-tunnel', options),
+  stopTunnel:       ()          => ipcRenderer.invoke('srv-stop-tunnel'),
+  getTunnelStatus:  ()          => ipcRenderer.invoke('srv-get-tunnel-status'),
+  checkCloudflared: ()          => ipcRenderer.invoke('srv-check-cloudflared'),
+  downloadCloudflared: ()       => ipcRenderer.invoke('srv-download-cloudflared'),
+  onCfDownloadProgress: (cb)    => ipcRenderer.on('cf-download-progress', (_, p) => cb(p)),
+  onTunnelClosed:   (cb)        => ipcRenderer.on('tunnel-closed', () => cb()),
 });

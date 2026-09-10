@@ -5,8 +5,10 @@ const https  = require('https');
 const os     = require('os');
 const crypto = require('crypto');
 const fs     = require('fs');
+const { spawn, execSync } = require('child_process');
 const selfsigned = require('selfsigned');
 const QRCode = require('qrcode');
+const localtunnel = require('localtunnel');
 
 let mainWindow   = null;
 let httpServer   = null;
@@ -14,6 +16,10 @@ const sseClients = new Map();   // clientId -> response
 const validTokens = new Set();  // auth tokens
 const SERVER_PORT = 8765;
 let serverPassword = null;
+let activeTunnel = null;          // For localtunnel instance
+let activeTunnelProcess = null;   // For cloudflared child_process
+let activeTunnelType = null;      // 'lan' | 'cloudflared' | 'localtunnel' | 'custom'
+let activeTunnelUrl = null;
 let tray         = null;
 let trayBalloonShown = false;
 let isQuitting   = false;
@@ -256,6 +262,213 @@ function updateTrayMenu() {
   tray.setContextMenu(contextMenu);
 }
 
+// ─── Tunnels (Cloudflare, LocalTunnel, Custom) ──────────────────────────────
+function findCloudflaredBinary() {
+  const candidates = [
+    path.join(__dirname, 'bin', 'cloudflared.exe'),
+    path.join(app.getPath('userData'), 'bin', 'cloudflared.exe')
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  try {
+    const out = execSync('where.exe cloudflared', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    const firstLine = out.split(/\r?\n/)[0].trim();
+    if (firstLine && fs.existsSync(firstLine)) return firstLine;
+  } catch {}
+  return null;
+}
+
+function downloadCloudflared(onProgress) {
+  return new Promise((resolve, reject) => {
+    const targetDir = path.join(app.getPath('userData'), 'bin');
+    if (!fs.existsSync(targetDir)) {
+      try { fs.mkdirSync(targetDir, { recursive: true }); } catch (e) { return reject(e); }
+    }
+    const dest = path.join(targetDir, 'cloudflared.exe');
+    const tempDest = dest + '.tmp';
+
+    const url = 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe';
+
+    function doDownload(downloadUrl) {
+      https.get(downloadUrl, (res) => {
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          return doDownload(res.headers.location);
+        }
+        if (res.statusCode !== 200) {
+          return reject(new Error('HTTP status ' + res.statusCode));
+        }
+        const total = parseInt(res.headers['content-length'] || '0', 10);
+        let downloaded = 0;
+        const fileStream = fs.createWriteStream(tempDest);
+
+        res.on('data', chunk => {
+          downloaded += chunk.length;
+          const percent = total > 0 ? Math.round((downloaded / total) * 100) : 0;
+          if (onProgress) onProgress({ percent, downloaded, total });
+        });
+
+        res.pipe(fileStream);
+
+        fileStream.on('finish', () => {
+          fileStream.close(() => {
+            try {
+              if (fs.existsSync(dest)) fs.unlinkSync(dest);
+              fs.renameSync(tempDest, dest);
+              resolve(dest);
+            } catch (err) {
+              reject(err);
+            }
+          });
+        });
+      }).on('error', err => {
+        try { if (fs.existsSync(tempDest)) fs.unlinkSync(tempDest); } catch {}
+        reject(err);
+      });
+    }
+
+    doDownload(url);
+  });
+}
+
+async function stopTunnel() {
+  if (activeTunnel) {
+    try { activeTunnel.close(); } catch {}
+    activeTunnel = null;
+  }
+  if (activeTunnelProcess) {
+    try { activeTunnelProcess.kill('SIGKILL'); } catch {}
+    activeTunnelProcess = null;
+  }
+  activeTunnelType = null;
+  activeTunnelUrl = null;
+}
+
+async function startTunnel(type, options = {}) {
+  await stopTunnel();
+  const port = options.port || SERVER_PORT;
+  const useHttps = options.useHttps || false;
+
+  if (type === 'localtunnel') {
+    try {
+      const tunnel = await localtunnel({
+        port,
+        local_https: useHttps,
+        allow_invalid_cert: true
+      });
+      activeTunnel = tunnel;
+      activeTunnelType = 'localtunnel';
+      activeTunnelUrl = tunnel.url;
+
+      tunnel.on('close', () => {
+        if (activeTunnel === tunnel) {
+          activeTunnel = null;
+          activeTunnelType = null;
+          activeTunnelUrl = null;
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('tunnel-closed');
+          }
+        }
+      });
+      tunnel.on('error', (err) => {
+        console.error('LocalTunnel error:', err);
+      });
+
+      return { ok: true, url: tunnel.url, type: 'localtunnel' };
+    } catch (err) {
+      return { ok: false, error: 'Ошибка запуска LocalTunnel: ' + err.message };
+    }
+  }
+
+  if (type === 'cloudflared') {
+    const binPath = findCloudflaredBinary();
+    if (!binPath) {
+      return { ok: false, error: 'cloudflared_not_found' };
+    }
+
+    return new Promise((resolve) => {
+      const protocol = useHttps ? 'https' : 'http';
+      const args = ['tunnel', '--url', `${protocol}://127.0.0.1:${port}`];
+      if (useHttps) {
+        args.push('--no-tls-verify');
+      }
+
+      let proc;
+      try {
+        proc = spawn(binPath, args, { windowsHide: true });
+      } catch (e) {
+        return resolve({ ok: false, error: 'Не удалось запустить cloudflared: ' + e.message });
+      }
+
+      activeTunnelProcess = proc;
+      activeTunnelType = 'cloudflared';
+      let resolved = false;
+
+      const timeout = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          resolve({ ok: false, error: 'Превышено время ожидания ответа от Cloudflare' });
+        }
+      }, 30000);
+
+      function parseOutput(data) {
+        const text = data.toString();
+        const match = text.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
+        if (match && !resolved) {
+          resolved = true;
+          clearTimeout(timeout);
+          activeTunnelUrl = match[0];
+          resolve({ ok: true, url: activeTunnelUrl, type: 'cloudflared' });
+        }
+      }
+
+      proc.stdout.on('data', parseOutput);
+      proc.stderr.on('data', parseOutput);
+
+      proc.on('error', (err) => {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timeout);
+          resolve({ ok: false, error: 'Ошибка процесса Cloudflare: ' + err.message });
+        }
+      });
+
+      proc.on('close', (code) => {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timeout);
+          resolve({ ok: false, error: `Cloudflare tunnel завершился с кодом ${code}` });
+        }
+        if (activeTunnelProcess === proc) {
+          activeTunnelProcess = null;
+          activeTunnelType = null;
+          activeTunnelUrl = null;
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('tunnel-closed');
+          }
+        }
+      });
+    });
+  }
+
+  if (type === 'custom') {
+    let customUrl = (options.customUrl || '').trim();
+    if (customUrl) {
+      if (!/^https?:\/\//i.test(customUrl)) {
+        customUrl = 'https://' + customUrl;
+      }
+      customUrl = customUrl.replace(/\/+$/, '');
+      activeTunnelType = 'custom';
+      activeTunnelUrl = customUrl;
+      return { ok: true, url: customUrl, type: 'custom' };
+    } else {
+      return { ok: false, error: 'Введите URL для пользовательского туннеля' };
+    }
+  }
+
+  return { ok: true, url: null, type: 'lan' };
+}
+
 // ─── Server lifecycle ─────────────────────────────────────────────────────────
 function startServer(password, useHttps, ipAddress) {
   if (httpServer) return;
@@ -278,6 +491,7 @@ function stopServer() {
   sseClients.clear();
   validTokens.clear();
   if (httpServer) { httpServer.close(); httpServer = null; }
+  stopTunnel();
   updateTrayMenu();
   notifyViewerCount();
 }
@@ -403,6 +617,41 @@ ipcMain.handle('srv-gen-qrcode', async (_, text) => {
   }
 });
 
+// Tunnel IPC handlers
+ipcMain.handle('srv-start-tunnel', async (_, options) => {
+  return await startTunnel(options.type, options);
+});
+
+ipcMain.handle('srv-stop-tunnel', async () => {
+  await stopTunnel();
+  return true;
+});
+
+ipcMain.handle('srv-get-tunnel-status', () => {
+  return {
+    active: !!(activeTunnel || activeTunnelProcess || (activeTunnelType === 'custom' && activeTunnelUrl)),
+    type: activeTunnelType,
+    url: activeTunnelUrl
+  };
+});
+
+ipcMain.handle('srv-check-cloudflared', () => {
+  return { exists: !!findCloudflaredBinary() };
+});
+
+ipcMain.handle('srv-download-cloudflared', async () => {
+  try {
+    const dest = await downloadCloudflared((progress) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('cf-download-progress', progress);
+      }
+    });
+    return { ok: true, path: dest };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+
 // Broadcast a camera frame to all SSE clients
 ipcMain.handle('srv-frame', (_, data) => {
   if (!httpServer || sseClients.size === 0) return;
@@ -478,6 +727,7 @@ app.whenReady().then(() => {
 
 app.on('before-quit', () => {
   isQuitting = true;
+  stopTunnel();
 });
 
 app.on('window-all-closed', () => {

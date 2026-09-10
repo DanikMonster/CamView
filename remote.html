@@ -23,6 +23,27 @@
     body::after  { content:''; position:fixed; bottom:-200px; right:-200px; width:600px; height:600px;
       background:radial-gradient(circle,rgba(6,182,212,.08) 0%,transparent 65%); pointer-events:none; z-index:0; }
 
+    /* Custom Slim Dark Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 99px;
+      transition: background 0.2s ease;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(139, 92, 246, 0.5);
+    }
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+    }
+
     /* SVG Icons */
     .svg-ic {
       width: 16px;

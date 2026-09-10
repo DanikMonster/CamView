@@ -24,6 +24,27 @@
     body::after{content:'';position:fixed;bottom:-300px;right:-300px;width:700px;height:700px;
       pointer-events:none;z-index:0;background:radial-gradient(circle,rgba(6,182,212,.07) 0%,transparent 65%);}
 
+    /* Custom Slim Dark Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 99px;
+      transition: background 0.2s ease;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(139, 92, 246, 0.5);
+    }
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+    }
+
     /* SVG Icons */
     .svg-ic {
       width: 16px;
@@ -111,8 +132,8 @@
     /* Password display */
     .pwd-display{display:flex;align-items:center;gap:8px;}
     .pwd-box{background:var(--bg3);border:1px solid var(--border);border-radius:8px;
-      padding:6px 12px;font-size:14px;font-family:'JetBrains Mono',monospace;
-      color:var(--text);letter-spacing:.12em;min-width:130px;text-align:center;}
+      padding:6px 12px;font-size:13px;font-family:'JetBrains Mono',monospace;
+      color:var(--text);letter-spacing:.06em;min-width:180px;text-align:center;user-select:all;}
     .rp-sep{width:1px;height:40px;background:var(--border);flex-shrink:0;}
 
     /* Viewer badge */
@@ -333,21 +354,62 @@
   <div id="remote-panel">
     <div class="rp-inner" style="border-bottom: 1px solid var(--border); padding-bottom: 14px; margin-bottom: 14px;">
 
-      <!-- IP Address Select -->
+      <!-- Access Mode Select -->
       <div class="rp-section">
+        <div class="rp-label">Режим доступа</div>
+        <select class="tcsel" id="srv-mode-select" style="min-width: 175px; margin-top: 4px;" onchange="onModeChange()">
+          <option value="lan">🌐 Локальная сеть (LAN)</option>
+          <option value="cloudflared">☁️ Cloudflare Tunnel</option>
+          <option value="localtunnel">🚇 LocalTunnel (loca.lt)</option>
+          <option value="custom">⚡ Pinggy / Свой URL</option>
+        </select>
+      </div>
+
+      <div class="rp-sep" id="rp-sep-ip"></div>
+
+      <!-- IP Address Select (LAN only) -->
+      <div class="rp-section" id="srv-ip-section">
         <div class="rp-label">IP-адрес</div>
         <select class="tcsel" id="srv-ip-select" style="min-width: 140px; margin-top: 4px;" onchange="onIpChange()"></select>
       </div>
 
-      <div class="rp-sep"></div>
+      <div class="rp-sep" id="rp-sep-proto"></div>
 
-      <!-- Protocol Select -->
-      <div class="rp-section">
+      <!-- Protocol Select (LAN only) -->
+      <div class="rp-section" id="srv-proto-section">
         <div class="rp-label">Протокол</div>
         <select class="tcsel" id="srv-proto-select" style="min-width: 90px; margin-top: 4px;" onchange="onProtoChange()">
           <option value="http">HTTP</option>
           <option value="https">HTTPS</option>
         </select>
+      </div>
+
+      <!-- Cloudflare Tunnel Status & Download -->
+      <div class="rp-section" id="srv-cf-section" style="display:none;min-width:210px;">
+        <div class="rp-label">Cloudflare Tunnel</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+          <span class="pill" id="cf-status-pill" style="font-size:11px;color:var(--green);border-color:rgba(74,222,128,0.3);background:rgba(74,222,128,0.08)">Проверка...</span>
+          <button class="btn btn-ghost btn-sm" id="cf-download-btn" style="display:none;padding:3px 8px;font-size:11px;gap:4px;" onclick="downloadCloudflared()">
+            <svg class="svg-ic" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Скачать
+          </button>
+        </div>
+        <div id="cf-download-progress-bar" style="display:none;width:100%;background:var(--bg3);height:6px;border-radius:4px;overflow:hidden;margin-top:6px;">
+          <div id="cf-download-fill" style="width:0%;height:100%;background:linear-gradient(90deg,var(--p),var(--p2));transition:width .2s;"></div>
+        </div>
+      </div>
+
+      <!-- LocalTunnel info -->
+      <div class="rp-section" id="srv-lt-section" style="display:none;">
+        <div class="rp-label">LocalTunnel</div>
+        <div style="margin-top:4px;display:flex;align-items:center;">
+          <span class="pill" style="font-size:11px;color:var(--p2);border-color:rgba(6,182,212,0.3);background:rgba(6,182,212,0.08)">HTTPS без установки</span>
+        </div>
+      </div>
+
+      <!-- Custom Tunnel / Pinggy input -->
+      <div class="rp-section" id="srv-custom-section" style="display:none;">
+        <div class="rp-label">URL туннеля (Pinggy и др.)</div>
+        <input type="text" id="srv-custom-url" placeholder="https://xxxx.a.free.pinggy.link" style="margin-top:4px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:12px;color:var(--text);outline:none;font-family:'JetBrains Mono',monospace;min-width:210px;" oninput="onCustomUrlInput()" />
       </div>
 
       <!-- SSL Cert status -->
@@ -585,6 +647,124 @@
   var useHttps = false;
   var fullAuthURL = null;
 
+  var accessMode = 'lan'; // 'lan' | 'cloudflared' | 'localtunnel' | 'custom'
+  var customTunnelUrl = '';
+  var isCloudflaredInstalled = false;
+  var isDownloadingCf = false;
+
+  function onModeChange() {
+    var sel = document.getElementById('srv-mode-select');
+    accessMode = sel ? sel.value : 'lan';
+    
+    var isLan = accessMode === 'lan';
+    var isCf = accessMode === 'cloudflared';
+    var isLt = accessMode === 'localtunnel';
+    var isCustom = accessMode === 'custom';
+
+    var ipSec = document.getElementById('srv-ip-section');
+    var sepIp = document.getElementById('rp-sep-ip');
+    var protoSec = document.getElementById('srv-proto-section');
+    var sepProto = document.getElementById('rp-sep-proto');
+
+    if (ipSec) ipSec.style.display = isLan ? '' : 'none';
+    if (sepIp) sepIp.style.display = isLan ? '' : 'none';
+    if (protoSec) protoSec.style.display = isLan ? '' : 'none';
+    if (sepProto) sepProto.style.display = isLan ? '' : 'none';
+
+    var certEls = document.querySelectorAll('.cert-element');
+    certEls.forEach(function(el) {
+      el.style.display = (isLan && useHttps) ? '' : 'none';
+    });
+
+    var cfSec = document.getElementById('srv-cf-section');
+    var ltSec = document.getElementById('srv-lt-section');
+    var customSec = document.getElementById('srv-custom-section');
+
+    if (cfSec) cfSec.style.display = isCf ? '' : 'none';
+    if (ltSec) ltSec.style.display = isLt ? '' : 'none';
+    if (customSec) customSec.style.display = isCustom ? '' : 'none';
+
+    if (isCf) {
+      checkCloudflared();
+    }
+
+    if (window.camBridge) {
+      window.camBridge.saveConfig({ accessMode: accessMode });
+    }
+  }
+
+  function onCustomUrlInput() {
+    var inp = document.getElementById('srv-custom-url');
+    customTunnelUrl = inp ? inp.value.trim() : '';
+    if (window.camBridge) {
+      window.camBridge.saveConfig({ customTunnelUrl: customTunnelUrl });
+    }
+  }
+
+  async function checkCloudflared() {
+    if (!window.camBridge || !window.camBridge.checkCloudflared) return;
+    try {
+      var res = await window.camBridge.checkCloudflared();
+      isCloudflaredInstalled = !!res.exists;
+      var pill = document.getElementById('cf-status-pill');
+      var btn = document.getElementById('cf-download-btn');
+      if (isCloudflaredInstalled) {
+        if (pill) {
+          pill.textContent = 'Готов к работе';
+          pill.style.color = 'var(--green)';
+          pill.style.borderColor = 'rgba(74,222,128,0.3)';
+          pill.style.background = 'rgba(74,222,128,0.08)';
+        }
+        if (btn) btn.style.display = 'none';
+      } else {
+        if (pill) {
+          pill.textContent = 'Не установлен';
+          pill.style.color = 'var(--yellow)';
+          pill.style.borderColor = 'rgba(251,191,36,0.3)';
+          pill.style.background = 'rgba(251,191,36,0.08)';
+        }
+        if (btn && !isDownloadingCf) btn.style.display = '';
+      }
+    } catch (e) {}
+  }
+
+  async function downloadCloudflared() {
+    if (!window.camBridge || !window.camBridge.downloadCloudflared || isDownloadingCf) return;
+    isDownloadingCf = true;
+    var btn = document.getElementById('cf-download-btn');
+    var pBar = document.getElementById('cf-download-progress-bar');
+    var pFill = document.getElementById('cf-download-fill');
+    var pill = document.getElementById('cf-status-pill');
+
+    if (btn) btn.style.display = 'none';
+    if (pBar) pBar.style.display = 'block';
+    if (pill) {
+      pill.textContent = 'Загрузка... 0%';
+      pill.style.color = 'var(--p2)';
+      pill.style.borderColor = 'rgba(6,182,212,0.3)';
+      pill.style.background = 'rgba(6,182,212,0.08)';
+    }
+
+    try {
+      var res = await window.camBridge.downloadCloudflared();
+      if (res && res.ok) {
+        toast('success', 'Cloudflared успешно загружен');
+        checkCloudflared();
+      } else {
+        toast('error', 'Ошибка загрузки: ' + (res ? res.error : 'Неизвестная ошибка'));
+        if (pill) pill.textContent = 'Ошибка загрузки';
+        if (btn) btn.style.display = '';
+      }
+    } catch (err) {
+      toast('error', 'Ошибка загрузки: ' + err.message);
+      if (btn) btn.style.display = '';
+    } finally {
+      isDownloadingCf = false;
+      if (pBar) pBar.style.display = 'none';
+      if (pFill) pFill.style.width = '0%';
+    }
+  }
+
   function showPrivacyModal() {
     document.getElementById('privacy-modal').style.display = 'flex';
   }
@@ -664,6 +844,38 @@
         document.getElementById('srv-ip-select').value = selectedIP;
       }
       await updateCertStatus();
+
+      if (savedCfg && savedCfg.accessMode) {
+        accessMode = savedCfg.accessMode;
+        var modeSel = document.getElementById('srv-mode-select');
+        if (modeSel) modeSel.value = accessMode;
+      }
+      if (savedCfg && savedCfg.customTunnelUrl) {
+        customTunnelUrl = savedCfg.customTunnelUrl;
+        var custInp = document.getElementById('srv-custom-url');
+        if (custInp) custInp.value = customTunnelUrl;
+      }
+      onModeChange();
+
+      // Download progress listener
+      if (window.camBridge.onCfDownloadProgress) {
+        window.camBridge.onCfDownloadProgress(function(p) {
+          var pFill = document.getElementById('cf-download-fill');
+          var pill = document.getElementById('cf-status-pill');
+          if (pFill) pFill.style.width = p.percent + '%';
+          if (pill) pill.textContent = 'Загрузка... ' + p.percent + '%';
+        });
+      }
+
+      // Tunnel closed listener
+      if (window.camBridge.onTunnelClosed) {
+        window.camBridge.onTunnelClosed(function() {
+          if (serverRunning && accessMode !== 'lan') {
+            toast('error', 'Туннель был отключен');
+            stopServer();
+          }
+        });
+      }
       
       // Listen for viewer count updates from main process
       window.camBridge.onViewerCount(function(n) {
@@ -794,7 +1006,7 @@
   function genPassword() {
     var chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
     var pwd = '';
-    for (var i = 0; i < 8; i++) pwd += chars[Math.floor(Math.random() * chars.length)];
+    for (var i = 0; i < 16; i++) pwd += chars[Math.floor(Math.random() * chars.length)];
     serverPassword = pwd;
     document.getElementById('rp-pwd').textContent = pwd;
     if (window.camBridge) {
@@ -816,21 +1028,75 @@
   async function startServer() {
     if (!window.camBridge) { toast('error','Только в Electron-приложении'); return; }
     if (!serverPassword) genPassword();
+
+    var selMode = document.getElementById('srv-mode-select');
+    accessMode = selMode ? selMode.value : 'lan';
+
+    var btn = document.getElementById('srv-btn');
+
     try {
+      document.getElementById('srv-mode-select').disabled = true;
       document.getElementById('srv-ip-select').disabled = true;
       document.getElementById('srv-proto-select').disabled = true;
-      
+      var customInp = document.getElementById('srv-custom-url');
+      if (customInp) customInp.disabled = true;
+
+      // Start local server (HTTP is ideal for tunnels because tunnel provides official HTTPS)
       var config = {
         password: serverPassword,
-        useHttps: useHttps,
+        useHttps: accessMode === 'lan' ? useHttps : false,
         ipAddress: selectedIP
       };
       
+      btn.innerHTML = ICONS.play + ' Запуск...';
       var result = await window.camBridge.startServer(config);
       serverRunning = true;
-      
-      var proto = result.useHttps ? 'https' : 'http';
-      serverURL = proto + '://' + result.ip + ':' + result.port;
+
+      if (accessMode === 'cloudflared') {
+        btn.innerHTML = ICONS.globe + ' Cloudflare...';
+        toast('info', 'Подключение Cloudflare Tunnel...');
+        var cfRes = await window.camBridge.startTunnel({
+          type: 'cloudflared',
+          port: result.port,
+          useHttps: result.useHttps
+        });
+        if (!cfRes || !cfRes.ok) {
+          if (cfRes && cfRes.error === 'cloudflared_not_found') {
+            throw new Error('Cloudflared не найден. Нажмите "Скачать" в панели.');
+          }
+          throw new Error(cfRes ? cfRes.error : 'Не удалось запустить Cloudflare Tunnel');
+        }
+        serverURL = cfRes.url;
+      } else if (accessMode === 'localtunnel') {
+        btn.innerHTML = ICONS.globe + ' LocalTunnel...';
+        toast('info', 'Подключение LocalTunnel...');
+        var ltRes = await window.camBridge.startTunnel({
+          type: 'localtunnel',
+          port: result.port,
+          useHttps: result.useHttps
+        });
+        if (!ltRes || !ltRes.ok) {
+          throw new Error(ltRes ? ltRes.error : 'Не удалось запустить LocalTunnel');
+        }
+        serverURL = ltRes.url;
+      } else if (accessMode === 'custom') {
+        var cUrl = customInp ? customInp.value.trim() : '';
+        if (!cUrl) {
+          throw new Error('Введите публичный URL для туннеля (например, Pinggy)');
+        }
+        var custRes = await window.camBridge.startTunnel({
+          type: 'custom',
+          customUrl: cUrl,
+          port: result.port
+        });
+        if (!custRes || !custRes.ok) {
+          throw new Error(custRes ? custRes.error : 'Некорректный URL туннеля');
+        }
+        serverURL = custRes.url;
+      } else {
+        var proto = result.useHttps ? 'https' : 'http';
+        serverURL = proto + '://' + result.ip + ':' + result.port;
+      }
 
       document.getElementById('rp-url').textContent = serverURL;
       document.getElementById('rp-url-section').style.display = '';
@@ -838,7 +1104,6 @@
       document.getElementById('rp-sep2').style.display = '';
       document.getElementById('rp-viewers-section').style.display = '';
 
-      var btn = document.getElementById('srv-btn');
       btn.innerHTML = ICONS.stop + ' Остановить';
       btn.className = 'btn btn-danger btn-sm';
 
@@ -847,20 +1112,20 @@
 
       startFrameCapture();
       updateQrCode();
-      toast('success', ICONS.globe + ' Сервер запущен: ' + serverURL);
+      toast('success', ICONS.globe + ' Трансляция доступна: ' + serverURL);
       
-      if (useHttps) {
+      if (accessMode === 'lan' && useHttps) {
         toast('info', 'Для HTTPS на удаленном устройстве нужно будет подтвердить самоподписанный сертификат');
       }
     } catch(e) {
-      toast('error', 'Ошибка запуска сервера');
-      document.getElementById('srv-ip-select').disabled = false;
-      document.getElementById('srv-proto-select').disabled = false;
+      toast('error', 'Ошибка запуска: ' + (e.message || e));
+      await stopServer();
     }
   }
 
   async function stopServer() {
     if (!window.camBridge) return;
+    try { await window.camBridge.stopTunnel(); } catch {}
     await window.camBridge.stopServer();
     serverRunning = false;
     stopFrameCapture();
@@ -879,8 +1144,11 @@
     document.getElementById('remote-srv-dot').style.background = 'var(--t3)';
     document.getElementById('remote-srv-dot').style.boxShadow = 'none';
 
+    document.getElementById('srv-mode-select').disabled = false;
     document.getElementById('srv-ip-select').disabled = false;
     document.getElementById('srv-proto-select').disabled = false;
+    var customInp = document.getElementById('srv-custom-url');
+    if (customInp) customInp.disabled = false;
 
     viewerCount = 0;
     updateViewerUI();
