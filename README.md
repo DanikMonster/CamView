@@ -86,7 +86,7 @@ You don't need to install Node.js or compile any code to use CamView:
 ### 🌐 Global Internet Access (Tunnels) & Local Network
 - **Cloudflare Tunnel (`trycloudflare.com`)**: Free global access from anywhere in the world over Cloudflare's secure edge network without public IP or port forwarding (includes 1-click automatic `cloudflared` binary download).
 - **LocalTunnel (`loca.lt`)**: Built-in global HTTPS tunnel with zero third-party tools required.
-- **Pinggy (`*.pinggy.link` / `*.pinggy.net`)**: 1-click automatic HTTPS tunnel via official `@pinggy/pinggy` SDK with zero configuration, plus optional direct 4th-level subdomain selector (`.a.free.pinggy.link`, `.a.pinggy.link`, `.free.pinggy.online`).
+- **Pinggy (`*.pinggy.link` / `*.pinggy.net`)**: 1-click automatic HTTPS tunnel via official `@pinggy/pinggy` SDK with zero configuration (Free tier provides automatic random URLs; custom 4th-level subdomains `.a.pinggy.link` supported with Pro).
 - **Custom URL**: Direct input for your own custom domain name, reverse proxy, or external tunnel.
 - **Local Network (LAN / Wi-Fi)**: Direct LAN connection with an included 10-year self-signed SSL certificate for all network interfaces.
 
