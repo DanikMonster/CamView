@@ -420,12 +420,15 @@
         </div>
       </div>
 
-      <!-- Pinggy 4th-level domain direct input -->
-      <div class="rp-section" id="srv-pinggy-section" style="display:none;min-width:320px;">
-        <div class="rp-label" data-i18n="lbl_pinggy">Поддомен 4-го уровня Pinggy</div>
+      <!-- Pinggy 4th-level domain direct input & 1-click auto SDK -->
+      <div class="rp-section" id="srv-pinggy-section" style="display:none;min-width:330px;">
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="rp-label" data-i18n="lbl_pinggy">Pinggy Tunnel</div>
+          <span class="pill" style="font-size:10px;padding:2px 8px;color:var(--p2);border-color:rgba(6,182,212,0.3);background:rgba(6,182,212,0.08)" data-i18n="pinggy_badge">Авто в 1 клик или свой поддомен</span>
+        </div>
         <div style="display:flex;align-items:center;gap:4px;margin-top:4px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:3px 8px;">
           <span style="font-size:12px;color:var(--t3);font-family:'JetBrains Mono',monospace;">https://</span>
-          <input type="text" id="srv-pinggy-subdomain" placeholder="subdomain" style="background:transparent;border:none;color:var(--p2);font-size:12px;outline:none;font-family:'JetBrains Mono',monospace;width:120px;font-weight:600;" oninput="onPinggyInput()" />
+          <input type="text" id="srv-pinggy-subdomain" placeholder="авто / custom" style="background:transparent;border:none;color:var(--p2);font-size:12px;outline:none;font-family:'JetBrains Mono',monospace;width:120px;font-weight:600;" oninput="onPinggyInput()" />
           <select id="srv-pinggy-suffix" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:11px;padding:3px 6px;outline:none;font-family:'JetBrains Mono',monospace;cursor:pointer;" onchange="onPinggyInput()">
             <option value=".a.free.pinggy.link">.a.free.pinggy.link (Free)</option>
             <option value=".a.pinggy.link">.a.pinggy.link (Pro)</option>
@@ -725,7 +728,8 @@
       cf_download_ok: 'Cloudflared успешно загружен',
       lbl_lt: 'LocalTunnel',
       lt_badge: 'HTTPS без установки',
-      lbl_pinggy: 'Поддомен 4-го уровня Pinggy',
+      lbl_pinggy: 'Pinggy Tunnel',
+      pinggy_badge: 'Авто в 1 клик или свой поддомен',
       lbl_custom: 'URL туннеля (любой домен)',
       lbl_ssl: 'SSL Сертификат',
       cert_created: 'Создан',
@@ -853,7 +857,8 @@
       cf_download_ok: 'Cloudflared successfully downloaded',
       lbl_lt: 'LocalTunnel',
       lt_badge: 'HTTPS with zero setup',
-      lbl_pinggy: 'Pinggy 4th-level Subdomain',
+      lbl_pinggy: 'Pinggy Tunnel',
+      pinggy_badge: '1-click auto or custom subdomain',
       lbl_custom: 'Tunnel URL (Any domain)',
       lbl_ssl: 'SSL Certificate',
       cert_created: 'Generated',
@@ -1570,9 +1575,6 @@
         serverURL = ltRes.url;
       } else if (accessMode === 'pinggy') {
         var pUrl = getPinggyFullURL();
-        if (!pUrl) {
-          throw new Error(t('toast_enter_pinggy'));
-        }
         btn.innerHTML = ICONS.globe + ' Pinggy...';
         toast('info', currentLang === 'en' ? 'Connecting Pinggy Tunnel...' : 'Подключение Pinggy Tunnel...');
         var pRes = await window.camBridge.startTunnel({
@@ -1581,7 +1583,7 @@
           port: result.port
         });
         if (!pRes || !pRes.ok) {
-          throw new Error(pRes ? pRes.error : (currentLang === 'en' ? 'Invalid Pinggy URL' : 'Некорректный URL Pinggy'));
+          throw new Error(pRes ? pRes.error : (currentLang === 'en' ? 'Failed to launch Pinggy Tunnel' : 'Не удалось запустить Pinggy Tunnel'));
         }
         serverURL = pRes.url;
       } else if (accessMode === 'custom') {

@@ -333,7 +333,13 @@ function downloadCloudflared(onProgress) {
 
 async function stopTunnel() {
   if (activeTunnel) {
-    try { activeTunnel.close(); } catch {}
+    try {
+      if (typeof activeTunnel.stop === 'function') {
+        await activeTunnel.stop();
+      } else if (typeof activeTunnel.close === 'function') {
+        activeTunnel.close();
+      }
+    } catch {}
     activeTunnel = null;
   }
   if (activeTunnelProcess) {
@@ -451,7 +457,7 @@ async function startTunnel(type, options = {}) {
     });
   }
 
-  if (type === 'custom' || type === 'pinggy') {
+  if (type === 'pinggy') {
     let customUrl = (options.customUrl || '').trim();
     if (customUrl) {
       if (!/^https?:\/\//i.test(customUrl)) {
@@ -461,11 +467,66 @@ async function startTunnel(type, options = {}) {
         customUrl = 'https://' + customUrl;
       }
       customUrl = customUrl.replace(/\/+$/, '');
-      activeTunnelType = type;
+      activeTunnelType = 'pinggy';
       activeTunnelUrl = customUrl;
-      return { ok: true, url: customUrl, type };
+      return { ok: true, url: customUrl, type: 'pinggy' };
+    }
+
+    // Auto-start live Pinggy tunnel via official SDK (@pinggy/pinggy)
+    try {
+      const { Pinggy } = require('@pinggy/pinggy');
+      const pinggyInstance = new Pinggy();
+      const pinggyOpts = {
+        forwarding: `localhost:${port}`
+      };
+      if (options.token) {
+        pinggyOpts.token = options.token;
+      }
+      const tunnel = await pinggyInstance.forward(pinggyOpts);
+      activeTunnel = tunnel;
+      activeTunnelType = 'pinggy';
+
+      const urls = await tunnel.urls();
+      let liveUrl = (Array.isArray(urls) && urls.length > 0) ? urls[0] : (typeof urls === 'string' ? urls : null);
+      if (Array.isArray(urls)) {
+        const httpsUrl = urls.find(u => u.startsWith('https://'));
+        if (httpsUrl) liveUrl = httpsUrl;
+      }
+      if (!liveUrl) {
+        await tunnel.stop();
+        return { ok: false, error: 'Pinggy не вернул публичный адрес' };
+      }
+      activeTunnelUrl = liveUrl;
+
+      tunnel.setTunnelDisconnectedCallback(() => {
+        if (activeTunnel === tunnel) {
+          activeTunnel = null;
+          activeTunnelType = null;
+          activeTunnelUrl = null;
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('tunnel-closed');
+          }
+        }
+      });
+
+      return { ok: true, url: liveUrl, type: 'pinggy' };
+    } catch (err) {
+      return { ok: false, error: 'Ошибка запуска Pinggy: ' + err.message };
+    }
+  }
+
+  if (type === 'custom') {
+    let customUrl = (options.customUrl || '').trim();
+    if (customUrl) {
+      if (!/^https?:\/\//i.test(customUrl)) {
+        customUrl = 'https://' + customUrl;
+      }
+      customUrl = customUrl.replace(/\/+$/, '');
+      activeTunnelType = 'custom';
+      activeTunnelUrl = customUrl;
+      return { ok: true, url: customUrl, type: 'custom' };
     } else {
-      return { ok: false, error: 'Введите поддомен или URL для туннеля' };
+      return { ok: false, error: 'Введите URL для туннеля' };
     }
   }
 
